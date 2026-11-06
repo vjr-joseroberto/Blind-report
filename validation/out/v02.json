@@ -1,0 +1,10 @@
+{
+  "epoca": 202611,
+  "ambiente": "staging",
+  "A1": "ACEITO",
+  "B1": "ACEITO",
+  "A2": "RECUSADO (limit_reached): Já houve um envio desta pessoa para esta redação neste período.",
+  "nullifierAIgualA2": true,
+  "nullifierADiferenteDeB": true,
+  "chaveArmazenadaA1": "9129d1a7c357…"
+}

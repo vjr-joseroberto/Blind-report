@@ -1,0 +1,17 @@
+{
+  "name": "@safe-whistle/web-newsroom",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": { "build": "node --import tsx build.mjs" },
+  "dependencies": {
+    "@arkiv-network/sdk": "^1.0.0",
+    "@safe-whistle/arkiv-store": "*",
+    "@safe-whistle/core": "*",
+    "@safe-whistle/ens-client": "*",
+    "@safe-whistle/network-policy": "*",
+    "@safe-whistle/newsroom-client": "*",
+    "viem": "^2.38.0"
+  }
+}

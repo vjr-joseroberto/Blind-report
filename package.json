@@ -1,0 +1,43 @@
+{
+  "name": "safe-whistle",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "description": "Safe Whistle \u2014 canal de den\u00fancia an\u00f4nima para jornalismo (ENSv2 + Arkiv + World ID).",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "guardrails": "node guardrails/check.mjs",
+    "test:guardrails": "node --test guardrails/*.test.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "ci": "npm run guardrails && npm run test:guardrails && npm run typecheck && npm run test:coverage",
+    "nodes:up": "bash tests/fixtures/nodes-up.sh",
+    "nodes:down": "bash tests/fixtures/nodes-down.sh",
+    "validation": "tsx",
+    "test:integration": "bash tests/run-integration.sh",
+    "test:e2e": "bash tests/run-e2e.sh",
+    "relayer": "node --env-file=.env --import tsx apps/relayer/src/main.ts",
+    "web:source": "npm run build -w apps/web-source && node scripts/serve.mjs apps/web-source/dist 5173",
+    "web:newsroom": "npm run build -w apps/web-newsroom && node scripts/serve.mjs apps/web-newsroom/dist 5174",
+    "links": "node --env-file=.env scripts/links.mjs",
+    "arkiv:query": "node --env-file-if-exists=.env --import tsx arkiv/query.ts"
+  },
+  "devDependencies": {
+    "@arkiv-network/sdk": "^1.0.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "@worldcoin/idkit-core": "^4.6.0",
+    "esbuild": "^0.25.12",
+    "fast-check": "^3.23.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.0",
+    "viem": "^2.57.14",
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@safe-whistle/web-source",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node --import tsx build.mjs"
+  },
+  "dependencies": {
+    "@safe-whistle/source-client": "*",
+    "@safe-whistle/core": "*",
+    "@safe-whistle/ens-client": "*",
+    "@safe-whistle/arkiv-store": "*",
+    "@safe-whistle/network-policy": "*",
+    "@arkiv-network/sdk": "^1.0.0",
+    "viem": "^2.38.0"
+  }
+}

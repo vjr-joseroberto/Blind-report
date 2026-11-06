@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
+data
+*.log
+.DS_Store
+validation/out/*-claims.jsonl
+apps/web-source/dist
+apps/web-newsroom/dist
+.~lock.*
+-

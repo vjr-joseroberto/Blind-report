@@ -1,0 +1,14 @@
+{
+  "name": "@safe-whistle/arkiv-store",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@arkiv-network/sdk": "^1.0.0",
+    "@safe-whistle/core": "*",
+    "viem": "^2.38.0"
+  }
+}

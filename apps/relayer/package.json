@@ -1,0 +1,21 @@
+{
+  "name": "@safe-whistle/relayer",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "start": "tsx src/main.ts" },
+  "dependencies": {
+    "@arkiv-network/sdk": "^1.0.0",
+    "@safe-whistle/arkiv-store": "*",
+    "@safe-whistle/core": "*",
+    "@safe-whistle/crypto": "*",
+    "@safe-whistle/ens-client": "*",
+    "@safe-whistle/network-policy": "*",
+    "@safe-whistle/worldid-gate": "*",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": { "tsx": "^4.20.0" }
+}

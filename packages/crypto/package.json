@@ -1,0 +1,18 @@
+{
+  "name": "@safe-whistle/crypto",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@safe-whistle/core": "*",
+    "libsodium-wrappers": "^0.8.4"
+  },
+  "devDependencies": {
+    "@types/libsodium-wrappers": "^0.7.14"
+  }
+}

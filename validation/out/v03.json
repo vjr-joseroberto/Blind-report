@@ -1,0 +1,108 @@
+{
+  "nome": "swv035c8du.eth",
+  "resolver": "0x060c29de1c4547DAB6BeC1543ba79AcbCfa608B7",
+  "subRegistry": "0xB88895cD06F3d2850De0Ca59AB677eCcc7368E1A",
+  "passos": [
+    {
+      "passo": "1. criar resolver (proxy)",
+      "gas": "791010",
+      "custoETH": "0.00000000001423818",
+      "ms": 5422,
+      "tx": "0x4af9952e1f1eed5ef06181972710fc2087afead857cef2a8a4c42b5359efc9f9"
+    },
+    {
+      "passo": "2. commit do registro",
+      "gas": "127458",
+      "custoETH": "0.000000000002294244",
+      "ms": 9780,
+      "tx": "0x53bee7f1da163107154b918c127665a11b2ccd3793aec912220cf0078e4cc1bc"
+    },
+    {
+      "passo": "3. mint de MockUSDC (token de teste)",
+      "gas": "140589",
+      "custoETH": "0.000000000002530602",
+      "ms": 10112,
+      "tx": "0xaafdaee82f250f5f070c05962e5c078f01ca0b6c356026172dd2f91d4bd6f674"
+    },
+    {
+      "passo": "4. approve do MockUSDC",
+      "gas": "128274",
+      "custoETH": "0.000000000002308932",
+      "ms": 9874,
+      "tx": "0x4d05fc3eec3e99582b809c5826b9190fad5948f98e050d18bbf50179e6c32d73"
+    },
+    {
+      "passo": "5. registrar o nome .eth",
+      "gas": "655997",
+      "custoETH": "0.000000000011807946",
+      "ms": 14692,
+      "tx": "0x8b774dbb5a4c01fd46ec36d5524f409bd30229f3483a296327b63955237d5ed9"
+    },
+    {
+      "passo": "texto denuncia.pubkey",
+      "gas": "593359",
+      "custoETH": "0.000000000010680462",
+      "ms": 22879,
+      "tx": "0x859cd773bdc34e0b2a277cb8394b36babc78dc45fc8e492cadcea1253a5930de"
+    },
+    {
+      "passo": "texto denuncia.pubkey.version",
+      "gas": "151482",
+      "custoETH": "0.000000000002726676",
+      "ms": 9793,
+      "tx": "0x2b6b979efe4b7882ee70c23592bbe840d951651ac66e9f52bde36017bace8889"
+    },
+    {
+      "passo": "texto denuncia.policy",
+      "gas": "483598",
+      "custoETH": "0.000000000008704764",
+      "ms": 14612,
+      "tx": "0x8f5b82e86c69fe8747ade2fc696e8312d504e5d1941f07eac5d0e8e0560bdf22"
+    },
+    {
+      "passo": "endereço da redação (custodiante)",
+      "gas": "149621",
+      "custoETH": "0.000000000002693178",
+      "ms": 9970,
+      "tx": "0xbc9b19cbc23198350549753f5b6d2104f66414ef87dc70b1c1dc1614044f9779"
+    },
+    {
+      "passo": "6. criar registry dos jornalistas",
+      "gas": "903034",
+      "custoETH": "0.000000000016254612",
+      "ms": 14421,
+      "tx": "0x7aa76b8307bfb40423628e95248170efa4bd3711068fc3da420f74b154ae434f"
+    },
+    {
+      "passo": "7. ligar o registry ao nome",
+      "gas": "139552",
+      "custoETH": "0.000000000002511936",
+      "ms": 9822,
+      "tx": "0xebfd71909729094351faaccd6a0ff18fb6e59de46b77bc4810d095929680d067"
+    },
+    {
+      "passo": "8. cadastrar o subname do jornalista",
+      "gas": "497981",
+      "custoETH": "0.000000000008963658",
+      "ms": 9929,
+      "tx": "0x975f8924080001112443bf5899487697d9056b2eac0d4cadeb8d68b7c5d0e570"
+    },
+    {
+      "passo": "texto denuncia.readerkey",
+      "gas": "275181",
+      "custoETH": "0.000000000004953258",
+      "ms": 14305,
+      "tx": "0x2f283d1ce9d16a3f8aeb7fed34143535e555fa5307415f70fe7a28393255156a"
+    }
+  ],
+  "custoTotalETH": "0.000000000090668448",
+  "duracaoTotalSegundos": 224,
+  "leitura": {
+    "chavePublica": true,
+    "versao": true,
+    "politica": true,
+    "custodiante": true,
+    "chaveDeLeitura": true,
+    "donoDoSubname": true
+  }
+}

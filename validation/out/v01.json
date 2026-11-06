@@ -1,0 +1,62 @@
+{
+  "rede": {
+    "chainId": 7794095,
+    "gasPriceWei": "1000000000"
+  },
+  "custoPorTamanho": [
+    {
+      "tamanho": "1 KiB",
+      "resultado": "aceito",
+      "custoTGLM": "0.000167665"
+    },
+    {
+      "tamanho": "16 KiB",
+      "resultado": "aceito",
+      "custoTGLM": "0.000694806"
+    },
+    {
+      "tamanho": "64 KiB",
+      "resultado": "aceito",
+      "custoTGLM": "0.002662215"
+    },
+    {
+      "tamanho": "120 KiB",
+      "resultado": "aceito",
+      "custoTGLM": "0.00495751"
+    },
+    {
+      "tamanho": "~126 KiB",
+      "resultado": "aceito",
+      "custoTGLM": "0.005200923"
+    },
+    {
+      "tamanho": "128 KiB exatos",
+      "resultado": "RECUSADO (Transaction failed: Execution error without revert data)",
+      "custoTGLM": "0"
+    }
+  ],
+  "acimaDoLimiteDoSdk": "Invalid bytes value \"<131073 bytes>\": 131073 bytes exceeds the 131072-byte limit on a byte",
+  "consultaPorFiltro": {
+    "encontradas": 1
+  },
+  "expiracao": {
+    "antes": 1,
+    "depois": 0,
+    "expiresAtBloco": "85524"
+  },
+  "custodia": {
+    "transferirParaRedacao": "permitido (custo 0.000043102 tGLM)",
+    "relayerEstendeSemSerDono": "permitido (custo 0.000042975 tGLM)",
+    "relayerApaga": "RECUSADO (Transaction failed: entity 0xb02b9506…b04f5f is owned by 0xdC35Ef1b21dfE85F595132829E4C2bf)",
+    "redacaoEstende": "permitido (custo 0.000042975 tGLM)",
+    "redacaoAlteraConteudo": "RECUSADO (Transaction failed: entity 0xb02b9506…b04f5f was created readonly, so its contents can nev)"
+  },
+  "donoECriador": {
+    "owner": "redação",
+    "creator": "relayer"
+  },
+  "saldosFinais": {
+    "relayerTGLM": "9.985920658",
+    "ownerTGLM": "9.999957025"
+  }
+}

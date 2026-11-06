@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-anon.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Guardrail: sem Tor/redes de anonimato"
+          }
+        ]
+      }
+    ]
+  }
+}

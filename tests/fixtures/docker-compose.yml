@@ -1,0 +1,13 @@
+# Nós locais para os testes de integração, E2E e validação (somente rede local; o fork lê um RPC público comum).
+# Subir:  docker compose -f tests/fixtures/docker-compose.yml up -d
+# Parar:  docker compose -f tests/fixtures/docker-compose.yml down
+services:
+  sepolia-fork:
+    image: ghcr.io/foundry-rs/foundry:latest
+    network_mode: host
+    entrypoint: ["anvil"]
+    command: ["--fork-url", "https://ethereum-sepolia-rpc.publicnode.com", "--host", "127.0.0.1", "--port", "8545", "--chain-id", "11155111"]
+  arkiv-local:
+    image: ghcr.io/arkiv-network/arkiv-reth-dev:latest
+    network_mode: host
+    command: ["node", "--dev", "--dev.block-time", "2s", "--http", "--http.addr", "127.0.0.1", "--http.port", "8546", "--http.api", "eth,net,web3,debug,txpool,rpc"]

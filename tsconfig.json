@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["arkiv", "packages/*/src", "packages/*/test", "apps/*/src", "apps/*/test", "tests", "validation"]
+}

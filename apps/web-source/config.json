@@ -1,0 +1,5 @@
+{
+  "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+  "relayerUrl": "http://127.0.0.1:8787",
+  "arkivRpcUrl": "https://rpc.rabdi.db-chain.testnet.arkiv.network"
+}

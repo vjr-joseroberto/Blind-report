@@ -1,0 +1,17 @@
+{
+  "name": "@safe-whistle/newsroom-client",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@safe-whistle/arkiv-store": "*",
+    "@safe-whistle/core": "*",
+    "@safe-whistle/crypto": "*",
+    "@safe-whistle/ens-client": "*",
+    "@safe-whistle/network-policy": "*",
+    "viem": "^2.38.0"
+  }
+}
