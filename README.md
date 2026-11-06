@@ -1,4 +1,4 @@
-# Safe Whistle
+# Blind Report
 
 Anonymous tip channel for journalism. The source sends an encrypted document to a newsroom identified by an ENS name; only the newsroom can open it, the source proves they are a real, unique person without identifying themselves, and anyone can verify the date and integrity of what was received.
 
