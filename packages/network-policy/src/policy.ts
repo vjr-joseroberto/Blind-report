@@ -1,9 +1,9 @@
 import { InvalidNetworkConfigError } from "./errors.ts";
 
 export type NetworkPolicy = {
-  /** Hosts permitidos (minúsculos, sem duplicados). Só https. */
+  /** Allowed hosts (lowercase, no duplicates). https only. */
   readonly hosts: readonly string[];
-  /** Permite http para localhost, 127.0.0.1 e [::1] (testes e desenvolvimento). */
+  /** Allows http for localhost, 127.0.0.1 and [::1] (tests and development). */
   readonly allowLocalhost: boolean;
 };
 
@@ -14,7 +14,7 @@ export function createPolicy(input: { hosts: string[]; allowLocalhost?: boolean 
   const hosts: string[] = [];
   for (const raw of input.hosts) {
     const host = raw.trim().toLowerCase();
-    if (!HOST_RE.test(host)) throw new InvalidNetworkConfigError(`Host inválido na lista: "${raw}"`);
+    if (!HOST_RE.test(host)) throw new InvalidNetworkConfigError(`Invalid host in the list: "${raw}"`);
     if (!hosts.includes(host)) hosts.push(host);
   }
   return { hosts, allowLocalhost: input.allowLocalhost ?? false };
@@ -38,23 +38,23 @@ export function isAllowed(policy: NetworkPolicy, input: string | URL): boolean {
   return false;
 }
 
-/** Monta a política a partir de uma configuração. Recusa proxies e RPC em http fora de localhost. */
+/** Builds the policy from a configuration. Refuses proxies and RPC over http outside localhost. */
 export function parseNetworkConfig(raw: Record<string, unknown>): NetworkPolicy {
   const known = new Set(["rpcUrl", "hosts"]);
   for (const key of Object.keys(raw)) {
     if (!known.has(key)) {
-      throw new InvalidNetworkConfigError(`Opção de rede não suportada: "${key}". Proxies e agentes de rede não são aceitos.`);
+      throw new InvalidNetworkConfigError(`Unsupported network option: "${key}". Proxies and network agents are not accepted.`);
     }
   }
   const hosts = [...((raw.hosts as string[] | undefined) ?? [])];
   let allowLocalhost = false;
   if (raw.rpcUrl !== undefined) {
-    if (typeof raw.rpcUrl !== "string") throw new InvalidNetworkConfigError("rpcUrl deve ser um texto.");
+    if (typeof raw.rpcUrl !== "string") throw new InvalidNetworkConfigError("rpcUrl must be a string.");
     const url = toUrl(raw.rpcUrl);
-    if (!url) throw new InvalidNetworkConfigError(`rpcUrl inválida: "${raw.rpcUrl}"`);
+    if (!url) throw new InvalidNetworkConfigError(`invalid rpcUrl: "${raw.rpcUrl}"`);
     if (url.protocol === "https:") hosts.push(url.hostname);
     else if (url.protocol === "http:" && LOCAL_HOSTS.has(url.hostname.toLowerCase())) allowLocalhost = true;
-    else throw new InvalidNetworkConfigError("O RPC deve usar https (ou http apenas em localhost).");
+    else throw new InvalidNetworkConfigError("The RPC must use https (or http only on localhost).");
   }
   return createPolicy({ hosts, allowLocalhost });
 }

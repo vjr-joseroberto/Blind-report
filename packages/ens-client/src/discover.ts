@@ -1,7 +1,7 @@
 import { isAddress, type Address } from "viem";
 import { ABIS, ENSV2_SEPOLIA } from "./deployments.ts";
 
-/** O mínimo do cliente para ler eventos (um PublicClient do viem satisfaz). */
+/** The minimum client for reading events (a viem PublicClient suffices). */
 export type LogClient = {
   getBlockNumber(): Promise<bigint>;
   getLogs(args: { address: Address; event: { name: string; [k: string]: unknown }; args?: Record<string, unknown>; fromBlock: bigint; toBlock: bigint }): Promise<{ args: Record<string, unknown> }[]>;
@@ -10,20 +10,20 @@ export type LogClient = {
 const eventOf = (name: string) => (ABIS.ethRegistry as readonly { type: string; name?: string }[]).find((e) => e.type === "event" && e.name === name) as { name: string; [k: string]: unknown };
 
 /**
- * Rótulos `.eth` que foram registrados (ou transferidos) PARA esta carteira, lendo os eventos do registry de trás para frente.
- * O ENS não responde "quais nomes são desta carteira"; por isso é uma busca em blocos recentes, que pode ficar incompleta
- * (RPCs públicos limitam o intervalo). Quem chama deve confirmar cada nome (registros do Safe Whistle e custodiante).
+ * `.eth` labels that were registered (or transferred) TO this wallet, reading registry events backwards.
+ * ENS does not answer "which names belong to this wallet"; hence it is a search over recent blocks, which can be incomplete
+ * (public RPCs limit the range). The caller must confirm each name (Safe Whistle records and custodian).
  */
 export async function findLabelsMintedTo(opts: {
   client: LogClient;
   address: Address;
   ethRegistry?: Address;
-  /** Quantos blocos olhar para trás (Sepolia: ~12 s por bloco). */
+  /** How many blocks to look back (Sepolia: ~12 s per block). */
   maxBlocks?: bigint;
   chunk?: bigint;
   minChunk?: bigint;
 }): Promise<{ labels: string[]; incomplete: boolean }> {
-  if (!isAddress(opts.address, { strict: false })) throw new Error("Endereço inválido.");
+  if (!isAddress(opts.address, { strict: false })) throw new Error("Invalid address.");
   const registry = opts.ethRegistry ?? (ENSV2_SEPOLIA.ethRegistry as Address);
   const transfer = eventOf("TransferSingle");
   const registered = eventOf("LabelRegistered");
@@ -49,9 +49,9 @@ export async function findLabelsMintedTo(opts: {
       }
       to = from - 1n;
     } catch {
-      if (size > minChunk) size = size / 2n > minChunk ? size / 2n : minChunk; // o RPC recusou o intervalo: tenta menor
+      if (size > minChunk) size = size / 2n > minChunk ? size / 2n : minChunk; // the RPC rejected the range: try a smaller one
       else {
-        incomplete = true; // nem o menor bloco funcionou: pula este trecho
+        incomplete = true; // not even the smallest block worked: skip this section
         to = from - 1n;
       }
     }

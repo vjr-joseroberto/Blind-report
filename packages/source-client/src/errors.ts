@@ -6,7 +6,7 @@ export type SourceErrorCode =
   | "network" | "unexpected_response" | "relayer_error"
   | "invalid_receipt" | "invalid_envelope" | "invalid_network";
 
-/** Erro com causa legível para mostrar à pessoa. A mensagem nunca traz o conteúdo da denúncia. */
+/** Error with a readable cause to show to the person. The message never carries the content of the tip. */
 export class SourceError extends Error {
   constructor(public readonly code: SourceErrorCode, message: string) {
     super(message);
@@ -16,10 +16,10 @@ export class SourceError extends Error {
 
 export type ProofFailure = "denied" | "expired" | "cancelled";
 
-/** O fornecedor de prova lança isto quando a pessoa nega, o pedido expira ou ela cancela. */
+/** The proof provider throws this when the person denies, the request expires, or they cancel. */
 export class ProofError extends Error {
   constructor(public readonly reason: ProofFailure) {
-    super(`prova ${reason}`);
+    super(`proof ${reason}`);
     this.name = "ProofError";
   }
 }

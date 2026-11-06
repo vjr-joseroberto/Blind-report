@@ -1,54 +1,54 @@
-# CROPS: como o Safe Whistle atende a trilha
+# CROPS: how Safe Whistle meets the track
 
-CROPS significa **C**ensorship-resistant, **O**pen source, **P**rivate e **S**ecure. A propriedade central do projeto é a **privacidade** de quem denuncia, sem sacrificar as outras três.
+CROPS stands for **C**ensorship-resistant, **O**pen source, **P**rivate and **S**ecure. The project's central property is the **privacy** of the person reporting, without sacrificing the other three.
 
-## 1. As quatro propriedades
+## 1. The four properties
 
-| Propriedade | Como o projeto atende | Evidência |
+| Property | How the project meets it | Evidence |
 |---|---|---|
-| **Resistente à censura** | O conteúdo e a identidade das redações vivem em redes públicas (ENS e Arkiv). Não há banco de dados central. A fonte lê a redação e as respostas direto da cadeia. O relayer é o único serviço do projeto; ele não pode apagar nem alterar o que publicou, e é possível ter vários | `docs/04-arquitetura-e-dados.md`, `validation/RESULTADOS.md` (V-08) |
-| **Código aberto** | Licença MIT; todo o código, testes e documentos estão no repositório | `LICENSE` |
-| **Privado** | Cifragem no navegador (libsodium); prova de pessoa única sem identidade; relayer sem log de IP, cabeçalhos, corpo ou prova; caixa de respostas efêmera; nada na cadeia aponta para a fonte | `docs/08-revisao-de-seguranca.md`, teste E2E "RNF-01" |
-| **Seguro** | Só libsodium (sem criptografia própria); formatos autenticados; só a redação decifra; autenticidade de anotações e respostas pelo criador na cadeia; política de rede que recusa qualquer endereço não declarado; entrada de administradores e jornalistas por carteira, sem chave digitada | `docs/08-revisao-de-seguranca.md`, `packages/network-policy` |
+| **Censorship-resistant** | The content and the newsrooms' identity live on public networks (ENS and Arkiv). There is no central database. The source reads the newsroom and the replies directly from the chain. The relayer is the project's only service; it cannot delete or change what it published, and it is possible to have several | `docs/04-architecture-and-data.md`, `validation/RESULTS.md` (V-08) |
+| **Open source** | MIT license; all the code, tests and documents are in the repository | `LICENSE` |
+| **Private** | Browser encryption (libsodium); proof of a unique person without identity; relayer with no log of IP, headers, body or proof; ephemeral reply box; nothing on the chain points to the source | `docs/08-security-review.md`, E2E test "RNF-01" |
+| **Secure** | Only libsodium (no custom cryptography); authenticated formats; only the newsroom decrypts; authenticity of notes and replies via the creator on the chain; network policy that refuses any undeclared address; administrator and journalist login through the wallet, without typing a key | `docs/08-security-review.md`, `packages/network-policy` |
 
-**O que o projeto não promete:** esconder o endereço de rede (IP) da fonte. Ele fica visível ao relayer, ao RPC e ao World. A proteção de rede é escolha da fonte, fora do aplicativo (VPN ou outra ferramenta). O app não embute nenhuma rede de anonimato. Os limites estão descritos sem rodeios na seção 7 do documento de panorama.
+**What the project does not promise:** hiding the source's network address (IP). It is visible to the relayer, the RPC and World. Network protection is the source's choice, outside the application (VPN or another tool). The app does not embed any anonymity network. The limits are described bluntly in section 7 of the overview document.
 
-## 2. Endereços de rede contatados (lista declarada)
+## 2. Contacted network addresses (declared list)
 
-Tudo que o aplicativo contata está na lista abaixo, e a política de segurança do navegador (CSP) e o `guardedFetch` recusam o resto.
+Everything the application contacts is in the list below, and the browser security policy (CSP) and `guardedFetch` refuse the rest.
 
-### Tela da fonte (navegador)
-| Endereço | Para que | Configurável |
+### Source screen (browser)
+| Address | For what | Configurable |
 |---|---|---|
-| A própria origem do app | Arquivos estáticos (HTML, JS, CSS, `config.json`) | n/a |
-| RPC do ENS (padrão `ethereum-sepolia-rpc.publicnode.com`) | Ler a chave pública, a versão e a política da redação | **Sim** (`config.json`) |
-| RPC do Arkiv (`rpc.rabdi.db-chain.testnet.arkiv.network`) | Ler respostas e verificar data e integridade | **Sim** |
-| Relayer (endereço do serviço) | Pedir o contexto da prova e enviar o envelope cifrado | **Sim** |
-| `bridge.worldcoin.org` | Ponte do IDKit, que liga a prova do aplicativo do World à página | Não |
+| The app's own origin | Static files (HTML, JS, CSS, `config.json`) | n/a |
+| ENS RPC (default `ethereum-sepolia-rpc.publicnode.com`) | Read the newsroom's public key, version and policy | **Yes** (`config.json`) |
+| Arkiv RPC (`rpc.rabdi.db-chain.testnet.arkiv.network`) | Read replies and verify date and integrity | **Yes** |
+| Relayer (service address) | Request the proof context and send the encrypted envelope | **Yes** |
+| `bridge.worldcoin.org` | IDKit bridge, which connects the World app proof to the page | No |
 
-### Painel da redação (navegador)
-RPC do ENS e RPC do Arkiv (acima). A **carteira** (MetaMask) usa o RPC dela, que o aplicativo não controla. Os links para exploradores (Etherscan, explorador da Rabdi) só são abertos quando a pessoa clica.
+### Newsroom panel (browser)
+ENS RPC and Arkiv RPC (above). The **wallet** (MetaMask) uses its own RPC, which the application does not control. The links to explorers (Etherscan, Rabdi explorer) are only opened when the person clicks.
 
-### Relayer (servidor)
-RPC do ENS, RPC do Arkiv e `developer.world.org` (verificação da prova).
+### Relayer (server)
+ENS RPC, Arkiv RPC and `developer.world.org` (proof verification).
 
-## 3. Rastreadores de terceiros
+## 3. Third-party trackers
 
-- **Nenhum** analytics, fonte externa, script ou imagem de terceiros. O HTML não referencia nenhum endereço externo.
-- A **CSP** é gerada da lista de endereços (`cspFor`) e escrita no HTML pelo build; o servidor das telas a envia também como cabeçalho. Sem curingas e sem `unsafe-inline`.
-- O IDKit foi usado **sem a interface padrão** (`@worldcoin/idkit-core`), justamente porque o widget carrega fontes de um domínio de terceiros do World.
-- **Teste automático:** `apps/*/test/static.test.ts` analisa o HTML e o pacote gerados. O pacote contém endereços padrão de bibliotecas (viem, SDK do Arkiv, IDKit) que **nunca são contatados**: a lista está revisada nos testes, e um endereço novo derruba o teste.
-- **Ainda não feito:** a **auditoria em tempo de execução** com um navegador real (aba de rede) para confirmar que o IDKit só contata o que está na lista. É o passo 1 do roteiro manual (`docs/09-roteiro-manual.md`).
+- **No** third-party analytics, external font, script or image. The HTML does not reference any external address.
+- The **CSP** is generated from the address list (`cspFor`) and written into the HTML by the build; the screens' server also sends it as a header. No wildcards and no `unsafe-inline`.
+- IDKit was used **without the default interface** (`@worldcoin/idkit-core`), precisely because the widget loads fonts from a World third-party domain.
+- **Automated test:** `apps/*/test/static.test.ts` analyzes the generated HTML and bundle. The bundle contains default library addresses (viem, Arkiv SDK, IDKit) that are **never contacted**: the list is reviewed in the tests, and a new address breaks the test.
+- **Not done yet:** the **runtime audit** with a real browser (network tab) to confirm that IDKit only contacts what is in the list. It is step 1 of the manual walkthrough (`docs/09-manual-walkthrough.md`).
 
-## 4. Pontos a esclarecer com a organização
-1. Um **RPC público** configurável conta como "serviço de terceiros"? Mitigamos com RPC configurável, endereços declarados e CSP estrita.
-2. O fluxo de prova de humanidade **contata servidores do World** (ponte do IDKit e API de verificação). Declaramos isso aqui e no README.
+## 4. Points to clarify with the organization
+1. Does a configurable **public RPC** count as a "third-party service"? We mitigate with a configurable RPC, declared addresses and a strict CSP.
+2. The proof of humanity flow **contacts World servers** (IDKit bridge and verification API). We declare this here and in the README.
 
-## 5. Demonstração de 3 minutos
-1. **(0:00)** O problema, em uma frase: denunciar sem se expor.
-2. **(0:20)** O administrador cadastra a redação e mostra as transações no Etherscan.
-3. **(0:50)** A fonte busca o nome, escreve e prova que é uma pessoa real. Mostrar a aba de rede: só os endereços declarados.
-4. **(1:30)** O envio aparece no Arkiv: hash e data, conteúdo ilegível.
-5. **(1:50)** O administrador decifra no painel e responde.
-6. **(2:20)** A fonte lê a resposta com o recibo.
-7. **(2:40)** Verificação de data e integridade; fechar com o que o sistema **não** promete.
+## 5. 3-minute demo
+1. **(0:00)** The problem, in one sentence: reporting without exposing yourself.
+2. **(0:20)** The administrator registers the newsroom and shows the transactions on Etherscan.
+3. **(0:50)** The source searches the name, writes and proves they are a real person. Show the network tab: only the declared addresses.
+4. **(1:30)** The submission appears in Arkiv: hash and date, unreadable content.
+5. **(1:50)** The administrator decrypts in the panel and replies.
+6. **(2:20)** The source reads the reply with the receipt.
+7. **(2:40)** Date and integrity verification; close with what the system does **not** promise.

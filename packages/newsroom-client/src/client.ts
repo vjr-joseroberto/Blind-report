@@ -11,16 +11,16 @@ type Store = Pick<ReturnType<typeof createStore>, "listSubmissions" | "annotate"
 type Reader = { resolveNewsroom(name: string): Promise<NewsroomInfo>; journalistOwner(name: string): Promise<Address | null> };
 
 export type NewsroomDeps = {
-  /** Cria a administração do ENS; `onProgress` recebe as etapas do cadastro. */
+  /** Creates the ENS administration; `onProgress` receives the registration steps. */
   makeAdmin: (hooks: { onProgress: (e: AdminStep) => void }) => Admin;
   reader: Reader;
   store: Store;
-  /** Conta desta pessoa: custodiante das denúncias e autora das anotações. */
+  /** This person's account: custodian of the tips and author of the notes. */
   account: Address;
-  /** Nome ENS completo de quem opera (ex.: `maria.jornalista1.eth`). Vazio para o administrador. */
+  /** Full ENS name of the operator (e.g.: `maria.jornalista1.eth`). Empty for the administrator. */
   authorName?: string;
   now: () => Date;
-  /** Iterações da derivação de chave do backup (testes usam poucas). */
+  /** Key derivation iterations for the backup (tests use few). */
   kdfIterations?: number;
 };
 
@@ -28,7 +28,7 @@ export type Decrypted = Payload & { category: string; epoch: number; key: string
 
 const DEFAULT_REPLY_RETENTION = 150 * 24 * 3600;
 const RECIPIENT = "redacao";
-const need = <T>(v: T | undefined, what = "Cadastre ou importe a redação primeiro."): T => {
+const need = <T>(v: T | undefined, what = "Register or import the newsroom first."): T => {
   if (v === undefined) throw new NewsroomError("no_newsroom", what);
   return v;
 };
@@ -40,10 +40,10 @@ export function createNewsroomClient(deps: NewsroomDeps) {
   const admin = deps.makeAdmin({ onProgress: (e) => progress?.(e) });
 
   const sortedKeys = () => [...keys.values()].sort((a, b) => a.version - b.version);
-  const current = () => need(sortedKeys().at(-1), "Não há chaves: cadastre ou importe a redação.");
+  const current = () => need(sortedKeys().at(-1), "There are no keys: register or import the newsroom.");
   const newKey = (version: number): KeyEntry => ({ version, ...newKeypair() });
   const name = () => need(ens).name;
-  /** Só vale o que o administrador ou um jornalista ativo escreveu; o ENS é consultado no momento da leitura. */
+  /** Only what the administrator or an active journalist wrote is valid; ENS is queried at read time. */
   const authorize = (): Authorize => createAuthority({ reader: deps.reader, newsroom: name() }).isAuthorized;
 
   const wrapPolicy = (policy: NewsroomPolicy): NewsroomPolicy => {
@@ -61,7 +61,7 @@ export function createNewsroomClient(deps: NewsroomDeps) {
       if (raw?.v !== 1) throw new Error();
       return { newsroom: raw.newsroom ?? undefined, keys: keysFromJson(raw.keys) };
     } catch {
-      throw new NewsroomError("invalid_backup", "O arquivo de backup é inválido ou está incompleto.");
+      throw new NewsroomError("invalid_backup", "The backup file is invalid or incomplete.");
     }
   };
   const encodeKeys = (kind: string, withNewsroom: boolean) =>
@@ -76,9 +76,9 @@ export function createNewsroomClient(deps: NewsroomDeps) {
       const k = current();
       return { version: k.version, publicKey: k.publicKey };
     },
-    keyFor: (version: number): Keypair => asKeypair(need(keys.get(version), `Falta a chave da versão ${version}.`)),
+    keyFor: (version: number): Keypair => asKeypair(need(keys.get(version), `Missing the key for version ${version}.`)),
     keyVersions: () => sortedKeys().map((k) => k.version),
-    /** Só para testes: devolve as chaves privadas em claro. */
+    /** For tests only: returns the private keys in the clear. */
     exportKeyringForTest: () => ({ keys: sortedKeys() }),
 
     async registerNewsroom(a: { label: string; policy: NewsroomPolicy; relayers?: string[]; onProgress?: (e: AdminStep) => void }): Promise<Newsroom> {
@@ -104,14 +104,14 @@ export function createNewsroomClient(deps: NewsroomDeps) {
       return next.version;
     },
 
-    /** Publica uma política nova no ENS (categorias, tamanho, anexos). */
+    /** Publishes a new policy to ENS (categories, size, attachments). */
     async updatePolicy(policy: NewsroomPolicy): Promise<void> {
       const n = need(ens);
       const valid = wrapPolicy(policy);
       await admin.setText({ name: n.name, resolver: n.resolver, key: ENS_KEYS.policy, value: JSON.stringify(valid) });
     },
 
-    /** Confere se a chave publicada no ENS é a que este aparelho usa. */
+    /** Checks whether the key published in ENS is the one this device uses. */
     async verifyPublished(): Promise<{ ok: boolean; onChainVersion: number }> {
       const info = await deps.reader.resolveNewsroom(name());
       const k = current();
@@ -122,7 +122,7 @@ export function createNewsroomClient(deps: NewsroomDeps) {
     async addJournalist(a: { label: string; address: Address; readerPublicKey: Uint8Array; validForSeconds?: number }): Promise<void> {
       await admin.addJournalist({ newsroom: need(ens), label: a.label, address: a.address, readerKey: a.readerPublicKey, ...(a.validForSeconds !== undefined ? { validForSeconds: a.validForSeconds } : {}) });
     },
-    /** Revogar impede novos acessos no ENS, mas não "desfaz" chaves já entregues: gire a chave. */
+    /** Revoking prevents new accesses in ENS, but does not "undo" keys already delivered: rotate the key. */
     async revokeJournalist(label: string): Promise<{ rotateRecommended: true }> {
       await admin.revokeJournalist({ newsroom: need(ens), label });
       return { rotateRecommended: true };
@@ -131,10 +131,10 @@ export function createNewsroomClient(deps: NewsroomDeps) {
       await admin.renewJournalist({ newsroom: need(ens), label, validForSeconds });
     },
 
-    /** Cada jornalista gera no próprio aparelho o par de chaves de leitura e entrega só a pública. */
+    /** Each journalist generates the reader keypair on their own device and delivers only the public one. */
     newReaderKey: (): Keypair => newKeypair(),
 
-    /** Cifra o chaveiro para a chave de leitura do jornalista. */
+    /** Encrypts the keyring for the journalist's reader key. */
     shareKeyring(readerPublicKey: Uint8Array): string {
       current();
       return toBase64Url(sealTo(readerPublicKey, encodeKeys("shared", true)));
@@ -144,7 +144,7 @@ export function createNewsroomClient(deps: NewsroomDeps) {
       try {
         bytes = openSealed(fromBase64Url(blob), reader);
       } catch {
-        throw new NewsroomError("cannot_decrypt", "Este chaveiro não foi cifrado para a sua chave de leitura.");
+        throw new NewsroomError("cannot_decrypt", "This keyring was not encrypted for your reader key.");
       }
       const parsed = decodeKeys(bytes);
       keys.clear();
@@ -166,8 +166,8 @@ export function createNewsroomClient(deps: NewsroomDeps) {
       try {
         bytes = await unlockWithPassword(blob, password);
       } catch (e) {
-        if (e instanceof CryptoError && e.code === "decrypt") throw new NewsroomError("wrong_password", "Senha incorreta ou backup adulterado.");
-        throw new NewsroomError("invalid_backup", "O arquivo de backup é inválido ou está incompleto.");
+        if (e instanceof CryptoError && e.code === "decrypt") throw new NewsroomError("wrong_password", "Incorrect password or tampered backup.");
+        throw new NewsroomError("invalid_backup", "The backup file is invalid or incomplete.");
       }
       const parsed = decodeKeys(bytes);
       keys.clear();
@@ -181,14 +181,14 @@ export function createNewsroomClient(deps: NewsroomDeps) {
 
     async decrypt(item: Pick<Submission, "key" | "envelope" | "pubkeyVersion" | "category" | "epoch">): Promise<Decrypted> {
       const k = keys.get(item.pubkeyVersion);
-      if (!k) throw new NewsroomError("missing_key", `Falta a chave da versão ${item.pubkeyVersion}. Importe o backup ou peça o chaveiro.`);
+      if (!k) throw new NewsroomError("missing_key", `Missing the key for version ${item.pubkeyVersion}. Import the backup or ask for the keyring.`);
       try {
         const env = decodeEnvelope(item.envelope);
         if (!verifyContentHash(env)) throw new CryptoError("format", "hash");
         const payload = decodePayload(open(env, RECIPIENT, asKeypair(k)));
         return { ...payload, category: env.category, epoch: item.epoch, key: item.key };
       } catch {
-        throw new NewsroomError("cannot_decrypt", "Não foi possível abrir esta denúncia com as chaves deste aparelho.");
+        throw new NewsroomError("cannot_decrypt", "Could not open this tip with this device's keys.");
       }
     },
 
@@ -198,13 +198,13 @@ export function createNewsroomClient(deps: NewsroomDeps) {
     statusOf: (denunciaKey: `0x${string}`) => deps.store.latestStatus(denunciaKey, authorize()),
 
     async reply(item: Pick<Submission, "envelope">, text: string, retentionSeconds = DEFAULT_REPLY_RETENTION): Promise<void> {
-      if (text.trim() === "") throw new NewsroomError("invalid_input", "A resposta não pode ser vazia.");
+      if (text.trim() === "") throw new NewsroomError("invalid_input", "The reply cannot be empty.");
       const env = decodeEnvelope(item.envelope);
       let payload: Uint8Array;
       try {
         payload = encodeReply({ newsroom: name(), text });
       } catch {
-        throw new NewsroomError("invalid_input", "A resposta não pode ser vazia.");
+        throw new NewsroomError("invalid_input", "The reply cannot be empty.");
       }
       await deps.store.publishReply({ newsroom: name(), mailboxId: mailboxId(env.mailboxPub), sealed: sealReply(env.mailboxPub, payload), retentionSeconds, ...(deps.authorName ? { authorName: deps.authorName } : {}) });
     },

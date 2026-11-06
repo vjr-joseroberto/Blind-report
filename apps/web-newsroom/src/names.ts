@@ -1,5 +1,5 @@
-// Memória local dos NOMES das redações abertas por cada carteira (só nomes públicos do ENS).
-// Esta é a única exceção à regra "nada no armazenamento do navegador": chaves, senhas, recibos e backups nunca passam por aqui.
+// Local memory of the NAMES of the newsrooms opened by each wallet (public ENS names only).
+// This is the only exception to the rule "nothing in browser storage": keys, passwords, receipts and backups never go through here.
 import { isNewsroomName } from "@safe-whistle/core";
 
 export type Remembered = { newsroom: string; journalist?: string };
@@ -9,7 +9,7 @@ const MAX = 20;
 const LABEL_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 const keyOf = (address: string) => `sw.names.v1.${address.toLowerCase()}`;
 
-/** Aceita só o formato esperado e descarta qualquer outro campo. */
+/** Accepts only the expected format and discards any other field. */
 function clean(x: unknown): Remembered | undefined {
   if (typeof x !== "object" || x === null) return undefined;
   const { newsroom, journalist } = x as { newsroom?: unknown; journalist?: unknown };
@@ -34,7 +34,7 @@ export function createNamesStore(storage: Storage | undefined) {
     try {
       storage?.setItem(keyOf(address), JSON.stringify(list.slice(0, MAX)));
     } catch {
-      /* armazenamento bloqueado ou cheio: a lembrança é só uma conveniência */
+      /* storage blocked or full: remembering is only a convenience */
     }
   };
 
@@ -49,13 +49,13 @@ export function createNamesStore(storage: Storage | undefined) {
       try {
         write(address, read(address).filter((x) => x.newsroom !== newsroom));
       } catch {
-        /* sem armazenamento */
+        /* no storage */
       }
     },
   };
 }
 
-/** Usa o armazenamento do navegador, se existir e estiver liberado. */
+/** Uses browser storage, if it exists and is allowed. */
 export function browserNamesStore() {
   let storage: Storage | undefined;
   try {

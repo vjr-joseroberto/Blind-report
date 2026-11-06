@@ -9,7 +9,7 @@ export function people(): { redacao: Keypair; maria: Keypair; intruso: Keypair }
   return { redacao: newKeypair(), maria: newKeypair(), intruso: newKeypair() };
 }
 
-/** Fonte de "aleatoriedade" previsível para testes de determinismo. */
+/** Source of predictable "randomness" for determinism tests. */
 export function seededRandom(start = 1): (n: number) => Uint8Array {
   let counter = start;
   return (n) => {

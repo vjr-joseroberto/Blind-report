@@ -8,7 +8,7 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-anon.mjs\"",
             "timeout": 10,
-            "statusMessage": "Guardrail: sem Tor/redes de anonimato"
+            "statusMessage": "Guardrail: no Tor/anonymity networks"
           }
         ]
       }

@@ -7,15 +7,15 @@ export type RpContext = { rp_id: string; nonce: string; created_at: number; expi
 const KEY_RE = /^[0-9a-fA-F]{64}$/;
 const RP_RE = /^rp_[A-Za-z0-9]+$/;
 
-/** Assinador do contexto RP. Roda SÓ no servidor: a chave de assinatura nunca vai ao navegador. */
+/** RP context signer. Runs ONLY on the server: the signing key never goes to the browser. */
 export function createRpContextSigner(opts: { signingKeyHex: string; rpId: string; ttlSeconds?: number }) {
   const key = opts.signingKeyHex.replace(/^0x/, "");
-  if (!KEY_RE.test(key)) throw new GateError("config", "A chave de assinatura RP é inválida (esperado 32 bytes em hexadecimal).");
-  if (!RP_RE.test(opts.rpId)) throw new GateError("config", "O rp_id deve ter o formato rp_….");
+  if (!KEY_RE.test(key)) throw new GateError("config", "The RP signing key is invalid (expected 32 bytes in hexadecimal).");
+  if (!RP_RE.test(opts.rpId)) throw new GateError("config", "The rp_id must have the format rp_….");
   const ttl = opts.ttlSeconds ?? 300;
 
   return {
-    /** Contexto assinado para a ação `submit:<redação>:<época>`. */
+    /** Signed context for the action `submit:<newsroom>:<epoch>`. */
     rpContextFor(a: { newsroom: string; epoch: number }): RpContext {
       const action = actionFor(a.newsroom, a.epoch);
       const sig = signRequest({ signingKeyHex: key, action, ttl });

@@ -1,13 +1,13 @@
 export class InvalidNameError extends Error {
   constructor(name: string, why = "") {
-    super(`Nome ENS inválido: "${name}"${why ? ` (${why})` : ""}`);
+    super(`Invalid ENS name: "${name}"${why ? ` (${why})` : ""}`);
     this.name = "InvalidNameError";
   }
 }
 
 export type RecordsErrorCode = "pubkey" | "version" | "policy" | "relayer" | "custodian" | "readerkey";
 
-/** Um registro de texto ou de endereço da redação está ausente ou inválido. */
+/** A newsroom text or address record is missing or invalid. */
 export class RecordsError extends Error {
   constructor(public readonly code: RecordsErrorCode, message: string) {
     super(message);
@@ -15,10 +15,10 @@ export class RecordsError extends Error {
   }
 }
 
-/** O nome não tem nenhum dos registros esperados. */
+/** The name has none of the expected records. */
 export class NewsroomNotFoundError extends Error {
   constructor(name: string) {
-    super(`Nenhuma redação encontrada para o nome "${name}".`);
+    super(`No newsroom found for the name "${name}".`);
     this.name = "NewsroomNotFoundError";
   }
 }

@@ -8,11 +8,11 @@ type Stored = EntityRow & { flags: { readonly: boolean; permissionlessExtension:
 export type MemoryChain = {
   backendFor(account: Address): Backend;
   advanceSeconds(seconds: number): void;
-  /** Sinalizadores da n-ésima entidade criada (para testes). */
+  /** Flags of the n-th created entity (for tests). */
   flagsOf(index: number): { readonly: boolean; permissionlessExtension: boolean };
 };
 
-/** Cadeia Arkiv em memória, compartilhada entre contas. Imita permissões, expiração em blocos e paginação. */
+/** In-memory Arkiv chain, shared between accounts. Mimics permissions, block expiration, and pagination. */
 export function createMemoryChain(): MemoryChain {
   let block = 1000n;
   let counter = 0;
@@ -20,14 +20,14 @@ export function createMemoryChain(): MemoryChain {
   const live = (e: Stored) => e.expiresAtBlock > block;
   const blocksFor = (seconds: number) => {
     const n = BigInt(Math.max(1, Math.ceil(seconds / ARKIV_BLOCK_SECONDS)));
-    if (n > BigInt(ARKIV_MAX_LIFETIME_BLOCKS)) throw new Error(`A vida pedida excede o máximo da cadeia (${ARKIV_MAX_LIFETIME_BLOCKS} blocos).`);
+    if (n > BigInt(ARKIV_MAX_LIFETIME_BLOCKS)) throw new Error(`The requested lifetime exceeds the chain maximum (${ARKIV_MAX_LIFETIME_BLOCKS} blocks).`);
     return n;
   };
   const hexKey = (n: number) => ("0x" + n.toString(16).padStart(64, "0")) as Hex;
 
   function checkAttrs(kind: EntityKind, attrs: Attrs): void {
     for (const k of Object.keys(attrs)) {
-      if (!(k in KIND_ATTRS[kind])) throw new Error(`Atributo desconhecido para ${kind}: ${k}`);
+      if (!(k in KIND_ATTRS[kind])) throw new Error(`Unknown attribute for ${kind}: ${k}`);
     }
   }
 
@@ -37,7 +37,7 @@ export function createMemoryChain(): MemoryChain {
       account,
       async create(kind, attrs, data, options: CreateOptions) {
         checkAttrs(kind, attrs);
-        if (data.length > ARKIV_MAX_BYTES) throw new Error(`Tamanho acima do limite do Arkiv: ${data.length}`);
+        if (data.length > ARKIV_MAX_BYTES) throw new Error(`Size above the Arkiv limit: ${data.length}`);
         block += 1n;
         const key = hexKey(++counter);
         entities.push({
@@ -48,16 +48,16 @@ export function createMemoryChain(): MemoryChain {
       },
       async changeOwnership(key, newOwner) {
         const e = find(key);
-        if (!e) throw new Error("Entidade inexistente ou expirada.");
-        if (e.owner.toLowerCase() !== account.toLowerCase()) throw new Error(`A entidade pertence a ${e.owner}, não a ${account}.`);
+        if (!e) throw new Error("Entity does not exist or has expired.");
+        if (e.owner.toLowerCase() !== account.toLowerCase()) throw new Error(`The entity belongs to ${e.owner}, not to ${account}.`);
         e.owner = newOwner;
       },
       async extend(key, seconds) {
         const e = find(key);
-        if (!e) throw new Error("Entidade inexistente ou expirada.");
-        if (e.owner.toLowerCase() !== account.toLowerCase() && !e.flags.permissionlessExtension) throw new Error(`A entidade pertence a ${e.owner}.`);
+        if (!e) throw new Error("Entity does not exist or has expired.");
+        if (e.owner.toLowerCase() !== account.toLowerCase() && !e.flags.permissionlessExtension) throw new Error(`The entity belongs to ${e.owner}.`);
         const next = block + blocksFor(seconds);
-        if (next < e.expiresAtBlock) throw new Error("A nova expiração é anterior à atual.");
+        if (next < e.expiresAtBlock) throw new Error("The new expiration is earlier than the current one.");
         e.expiresAtBlock = next;
       },
       async get(kind, key) {
@@ -66,7 +66,7 @@ export function createMemoryChain(): MemoryChain {
       },
       async select(kind, filter, page) {
         const keys = Object.keys(filter);
-        if (keys.length === 0) throw new Error("A consulta exige ao menos um filtro.");
+        if (keys.length === 0) throw new Error("The query requires at least one filter.");
         checkAttrs(kind, filter);
         const matches = entities.filter((e) => e.kind === kind && live(e) && keys.every((k) => e.attrs[k] === filter[k]));
         return matches.slice(page.offset, page.offset + page.limit).map(toRow);
@@ -86,7 +86,7 @@ export function createMemoryChain(): MemoryChain {
     },
     flagsOf(index) {
       const e = entities[index];
-      if (!e) throw new Error(`Sem entidade no índice ${index}`);
+      if (!e) throw new Error(`No entity at index ${index}`);
       return { ...e.flags };
     },
   };

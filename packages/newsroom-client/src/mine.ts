@@ -3,8 +3,8 @@ import { NewsroomNotFoundError, RecordsError, type NewsroomInfo } from "@safe-wh
 import type { Address } from "viem";
 
 /**
- * Redações que esta carteira administra: parte dos rótulos achados nos eventos do registry e confirma cada um no ENS
- * (tem os registros do Safe Whistle e o custodiante é a carteira). Falhas viram "incompleto", nunca um papel.
+ * Newsrooms administered by this wallet: takes part of the labels found in the registry events and confirms each one in ENS
+ * (it has the Safe Whistle records and the custodian is the wallet). Failures become "incomplete", never a role.
  */
 export async function listAdministered(a: {
   address: Address;

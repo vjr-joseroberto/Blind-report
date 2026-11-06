@@ -1,5 +1,5 @@
 import sodiumLib from "libsodium-wrappers";
 
-// O WebAssembly do libsodium precisa estar pronto antes do primeiro uso.
+// The libsodium WebAssembly must be ready before first use.
 await sodiumLib.ready;
 export const sodium = sodiumLib;

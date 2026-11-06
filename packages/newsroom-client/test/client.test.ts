@@ -16,8 +16,8 @@ const bytesIn = (v: unknown, needle: Uint8Array): boolean => {
   return hay.includes(toBase64Url(needle)) || hay.includes(Buffer.from(needle).toString("hex"));
 };
 
-describe("1. cadastro", () => {
-  it("registra_a_redacao_e_informa_a_espera_do_commit", async () => {
+describe("1. registration", () => {
+  it("registers_the_newsroom_and_reports_the_commit_wait", async () => {
     const client = createNewsroomClient(makeDeps().deps);
     const steps: AdminStep[] = [];
     const n = await client.registerNewsroom({ label: "investiga", policy: POLICY, onProgress: (e) => steps.push(e) });
@@ -26,20 +26,20 @@ describe("1. cadastro", () => {
     expect(steps.find((s) => s.step === "commit_wait")?.seconds).toBe(65);
   });
 
-  it("publica_chave_e_politica_com_versao_1_e_a_conta_como_custodiante", async () => {
+  it("publishes_key_and_policy_with_version_1_and_the_account_as_custodian", async () => {
     const { f, client } = await registered();
     expect(f.admin.createNewsroom).toHaveBeenCalledWith(expect.objectContaining({ label: "investiga", version: 1, policy: POLICY, custodian: NEWSROOM_ACCOUNT }));
     expect(f.admin.createNewsroom.mock.calls[0]![0].publicKey).toEqual(client.currentKey().publicKey);
     expect(client.currentKey().version).toBe(1);
   });
 
-  it("recusa_politica_invalida_antes_de_gastar_gas", async () => {
+  it("refuses_invalid_policy_before_spending_gas", async () => {
     const f = makeDeps();
     await expect(createNewsroomClient(f.deps).registerNewsroom({ label: "investiga", policy: { ...POLICY, categories: [] } })).rejects.toMatchObject({ code: "invalid_input" });
     expect(f.admin.createNewsroom).not.toHaveBeenCalled();
   });
 
-  it("sem_redacao_as_operacoes_dependentes_falham_com_erro_claro", async () => {
+  it("without_a_newsroom_dependent_operations_fail_with_a_clear_error", async () => {
     const client = createNewsroomClient(makeDeps().deps);
     await expect(client.listInbox({})).rejects.toMatchObject({ code: "no_newsroom" });
     await expect(client.rotateKey()).rejects.toMatchObject({ code: "no_newsroom" });
@@ -47,8 +47,8 @@ describe("1. cadastro", () => {
   });
 });
 
-describe("2. chaves", () => {
-  it("gera_a_chave_privada_localmente_e_nunca_a_envia", async () => {
+describe("2. keys", () => {
+  it("generates_the_private_key_locally_and_never_sends_it", async () => {
     const { f, client } = await registered();
     const priv = client.exportKeyringForTest().keys[0]!.privateKey;
     await client.rotateKey();
@@ -57,7 +57,7 @@ describe("2. chaves", () => {
     for (const call of f.calls) expect(bytesIn(call, priv)).toBe(false);
   });
 
-  it("rotaciona_com_versao_maior_e_guarda_as_chaves_antigas", async () => {
+  it("rotates_with_a_higher_version_and_keeps_the_old_keys", async () => {
     const { f, client } = await registered();
     const old = client.currentKey();
     await client.rotateKey();
@@ -67,14 +67,14 @@ describe("2. chaves", () => {
     expect(client.keyVersions()).toEqual([1, 2]);
   });
 
-  it("se_a_publicacao_da_chave_nova_falha_a_chave_nao_entra_no_chaveiro", async () => {
+  it("if_publishing_the_new_key_fails_the_key_does_not_enter_the_keyring", async () => {
     const { f, client } = await registered();
-    f.admin.rotateKey.mockRejectedValueOnce(new Error("rpc fora"));
+    f.admin.rotateKey.mockRejectedValueOnce(new Error("rpc down"));
     await expect(client.rotateKey()).rejects.toThrow();
     expect(client.keyVersions()).toEqual([1]);
   });
 
-  it("exporta_a_chave_protegida_por_senha_e_importa_e_restaura", async () => {
+  it("exports_the_key_protected_by_password_and_imports_and_restores", async () => {
     const { f, client } = await registered();
     await client.rotateKey();
     const blob = await client.exportBackup("senha-forte-123");
@@ -87,13 +87,13 @@ describe("2. chaves", () => {
     void f;
   });
 
-  it("senha_errada_falha", async () => {
+  it("wrong_password_fails", async () => {
     const { client } = await registered();
     const blob = await client.exportBackup("senha-forte-123");
     await expect(createNewsroomClient(makeDeps().deps).importBackup(blob, "errada-errada")).rejects.toMatchObject({ code: "wrong_password" });
   });
 
-  it("backup_malformado_ou_de_outro_tipo_e_recusado", async () => {
+  it("malformed_or_wrong_type_backup_is_refused", async () => {
     const c = createNewsroomClient(makeDeps().deps);
     await expect(c.importBackup("lixo", "senha-forte-123")).rejects.toMatchObject({ code: "invalid_backup" });
     const { lockWithPassword } = await import("@safe-whistle/crypto");
@@ -101,32 +101,32 @@ describe("2. chaves", () => {
     await expect(c.importBackup(wrong, "senha-forte-123")).rejects.toMatchObject({ code: "invalid_backup" });
   });
 
-  it("exportar_sem_chaves_falha", async () => {
+  it("exporting_without_keys_fails", async () => {
     await expect(createNewsroomClient(makeDeps().deps).exportBackup("senha-forte-123")).rejects.toMatchObject({ code: "no_newsroom" });
   });
 });
 
-describe("política da redação", () => {
-  it("atualiza_a_politica_no_ens_do_resolver_da_redacao", async () => {
+describe("newsroom policy", () => {
+  it("updates_the_policy_in_ens_of_the_newsroom_resolver", async () => {
     const { f, client } = await registered();
     const policy = { categories: ["saude"], maxBytes: 50_000, attachments: false, epoch: "monthly" as const };
     await client.updatePolicy(policy);
     expect(f.admin.setText).toHaveBeenCalledWith({ name: ENS.name, resolver: ENS.resolver, key: "denuncia.policy", value: JSON.stringify(policy) });
   });
 
-  it("recusa_politica_invalida_antes_de_gastar_gas", async () => {
+  it("refuses_invalid_policy_before_spending_gas", async () => {
     const { f, client } = await registered();
     await expect(client.updatePolicy({ categories: [], maxBytes: 1, attachments: false, epoch: "monthly" })).rejects.toMatchObject({ code: "invalid_input" });
     expect(f.admin.setText).not.toHaveBeenCalled();
   });
 
-  it("exige_a_redacao_carregada", async () => {
+  it("requires_the_newsroom_loaded", async () => {
     await expect(createNewsroomClient(makeDeps().deps).updatePolicy(POLICY)).rejects.toMatchObject({ code: "no_newsroom" });
   });
 });
 
-describe("3. jornalistas", () => {
-  it("cadastra_e_revoga", async () => {
+describe("3. journalists", () => {
+  it("registers_and_revokes", async () => {
     const { f, client } = await registered();
     const reader = newKeypair();
     await client.addJournalist({ label: "maria", address: JOURNALIST, readerPublicKey: reader.publicKey, validForSeconds: 1000 });
@@ -136,13 +136,13 @@ describe("3. jornalistas", () => {
     expect(r.rotateRecommended).toBe(true);
   });
 
-  it("renova_o_jornalista", async () => {
+  it("renews_the_journalist", async () => {
     const { f, client } = await registered();
     await client.renewJournalist("maria", 3600);
     expect(f.admin.renewJournalist).toHaveBeenCalledWith({ newsroom: ENS, label: "maria", validForSeconds: 3600 });
   });
 
-  it("o_jornalista_recebe_o_chaveiro_cifrado_para_a_sua_chave_e_decifra", async () => {
+  it("the_journalist_receives_the_keyring_encrypted_for_their_key_and_decrypts", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     await client.rotateKey();
@@ -160,7 +160,7 @@ describe("3. jornalistas", () => {
     expect((await journalist.decrypt((await journalist.listInbox({})).items.find((i) => i.key === sub2.entity)!)).text).toBe("nova");
   });
 
-  it("chaveiro_compartilhado_com_outra_chave_nao_abre", async () => {
+  it("shared_keyring_with_another_key_does_not_open", async () => {
     const { client } = await registered();
     const shared = client.shareKeyring(newKeypair().publicKey);
     const j = createNewsroomClient(makeDeps().deps);
@@ -168,8 +168,8 @@ describe("3. jornalistas", () => {
   });
 });
 
-describe("3b. chave de leitura", () => {
-  it("cada_jornalista_gera_o_proprio_par_de_chaves", () => {
+describe("3b. reader key", () => {
+  it("each_journalist_generates_their_own_keypair", () => {
     const c = createNewsroomClient(makeDeps().deps);
     const a = c.newReaderKey();
     expect(a.publicKey).toHaveLength(32);
@@ -177,8 +177,8 @@ describe("3b. chave de leitura", () => {
   });
 });
 
-describe("4. lista", () => {
-  it("lista_por_status_e_categoria", async () => {
+describe("4. list", () => {
+  it("lists_by_status_and_category", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const a = await publishAs(f, client.currentKey(), { category: "saude" });
@@ -191,7 +191,7 @@ describe("4. lista", () => {
     expect((await client.listInbox({ status: "new" })).items).toHaveLength(1);
   });
 
-  it("pagina_em_blocos", async () => {
+  it("paginates_in_blocks", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     for (let i = 0; i < 5; i++) await publishAs(f, client.currentKey());
@@ -204,8 +204,8 @@ describe("4. lista", () => {
   });
 });
 
-describe("5. decifragem", () => {
-  it("decifra_texto_e_anexo", async () => {
+describe("5. decryption", () => {
+  it("decrypts_text_and_attachment", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const data = new Uint8Array([1, 2, 3, 250]);
@@ -218,7 +218,7 @@ describe("5. decifragem", () => {
     expect(out.category).toBe("saude");
   });
 
-  it("envelope_de_versao_antiga_usa_a_chave_antiga", async () => {
+  it("old_version_envelope_uses_the_old_key", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const v1 = client.currentKey();
@@ -229,7 +229,7 @@ describe("5. decifragem", () => {
     expect((await client.decrypt(item)).text).toBe("da versão 1");
   });
 
-  it("nao_decifra_sem_a_chave_da_versao", async () => {
+  it("does_not_decrypt_without_the_version_key", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     await publishAs(f, { version: 7, publicKey: newKeypair().publicKey });
@@ -237,7 +237,7 @@ describe("5. decifragem", () => {
     await expect(client.decrypt(item)).rejects.toMatchObject({ code: "missing_key" });
   });
 
-  it("envelope_cifrado_para_outra_chave_com_a_mesma_versao_falha_com_erro_claro", async () => {
+  it("envelope_encrypted_for_another_key_with_the_same_version_fails_with_a_clear_error", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     await publishAs(f, { version: 1, publicKey: newKeypair().publicKey });
@@ -246,7 +246,7 @@ describe("5. decifragem", () => {
 });
 
 describe("6. status", () => {
-  it("registra_anotacao_sem_alterar_o_envelope", async () => {
+  it("records_note_without_changing_the_envelope", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const sub = await publishAs(f, client.currentKey());
@@ -260,12 +260,12 @@ describe("6. status", () => {
   });
 });
 
-describe("A3 autoria das anotações", () => {
+describe("A3 note authorship", () => {
   const MARIA = `maria.${ENS.name}`;
   const asJournalist = (f: ReturnType<typeof makeDeps>, authorName: string | undefined = MARIA) =>
     createNewsroomClient({ ...f.deps, account: JOURNALIST, store: createStore(f.chain.backendFor(JOURNALIST)), authorName });
 
-  it("status_forjado_por_carteira_qualquer_nao_aparece", async () => {
+  it("status_forged_by_any_wallet_does_not_appear", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const sub = await publishAs(f, client.currentKey());
@@ -275,7 +275,7 @@ describe("A3 autoria das anotações", () => {
     expect(await client.statusOf(sub.entity)).toBe("new");
   });
 
-  it("status_do_jornalista_ativo_aparece_e_leva_o_nome_dele", async () => {
+  it("active_journalist_status_appears_and_carries_their_name", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     f.owners[MARIA] = JOURNALIST;
@@ -287,7 +287,7 @@ describe("A3 autoria das anotações", () => {
     expect((await createStore(f.chain.backendFor(JOURNALIST)).listAnnotations({ newsroom: ENS.name }))[0]).toMatchObject({ authorName: MARIA });
   });
 
-  it("status_do_administrador_vale_sem_nome", async () => {
+  it("administrator_status_is_valid_without_a_name", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const sub = await publishAs(f, client.currentKey());
@@ -295,7 +295,7 @@ describe("A3 autoria das anotações", () => {
     expect((await client.listInbox({})).items[0]!.status).toBe("verified");
   });
 
-  it("status_do_jornalista_revogado_e_ignorado", async () => {
+  it("revoked_journalist_status_is_ignored", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     f.owners[MARIA] = JOURNALIST;
@@ -303,13 +303,13 @@ describe("A3 autoria das anotações", () => {
     const journalist = asJournalist(f);
     journalist.useNewsroom(ENS);
     await journalist.setStatus(sub.entity, "review");
-    f.owners[MARIA] = null; // revogado
+    f.owners[MARIA] = null; // revoked
     const r = await client.listInbox({});
     expect(r.items[0]!.status).toBe("new");
     expect(r.ignoredAnnotations).toBe(1);
   });
 
-  it("inbox_informa_quantas_anotacoes_foram_ignoradas", async () => {
+  it("inbox_reports_how_many_notes_were_ignored", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const sub = await publishAs(f, client.currentKey());
@@ -318,7 +318,7 @@ describe("A3 autoria das anotações", () => {
     expect((await client.listInbox({})).ignoredAnnotations).toBe(2);
   });
 
-  it("jornalista_sem_nome_declarado_e_ignorado_se_nao_for_o_custodiante", async () => {
+  it("journalist_without_declared_name_is_ignored_if_not_the_custodian", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const sub = await publishAs(f, client.currentKey());
@@ -329,8 +329,8 @@ describe("A3 autoria das anotações", () => {
   });
 });
 
-describe("7. resposta", () => {
-  it("cifra_para_o_mailbox_da_denuncia_e_so_a_fonte_abre", async () => {
+describe("7. reply", () => {
+  it("encrypts_for_the_tip_mailbox_and_only_the_source_opens_it", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const sub = await publishAs(f, client.currentKey());
@@ -344,7 +344,7 @@ describe("7. resposta", () => {
     expect(() => openReply(rows[0]!.sealed, newKeypair() as never)).toThrow();
   });
 
-  it("resposta_de_jornalista_leva_o_nome_e_o_criador_real", async () => {
+  it("journalist_reply_carries_the_name_and_the_real_creator", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const sub = await publishAs(f, client.currentKey());
@@ -357,7 +357,7 @@ describe("7. resposta", () => {
     expect(row!.authorName).toBe(`maria.${ENS.name}`);
   });
 
-  it("resposta_vazia_e_recusada", async () => {
+  it("empty_reply_is_refused", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     await publishAs(f, client.currentKey());
@@ -365,8 +365,8 @@ describe("7. resposta", () => {
   });
 });
 
-describe("8. retenção", () => {
-  it("lista_denuncias_proximas_do_vencimento_e_renova", async () => {
+describe("8. retention", () => {
+  it("lists_tips_near_expiry_and_renews", async () => {
     const f = makeDeps();
     const { client } = await registered(f);
     const sub = await publishAs(f, client.currentKey());
@@ -379,8 +379,8 @@ describe("8. retenção", () => {
   });
 });
 
-describe("conferência com o ENS", () => {
-  it("confere_se_a_chave_publicada_e_a_do_aparelho", async () => {
+describe("check against ENS", () => {
+  it("checks_whether_the_published_key_is_the_device_one", async () => {
     const { f, client } = await registered();
     const k = client.currentKey();
     f.reader.resolveNewsroom.mockResolvedValueOnce({ pubkeyVersion: 1, publicKey: k.publicKey } as never);

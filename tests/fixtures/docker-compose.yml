@@ -1,6 +1,6 @@
-# Nós locais para os testes de integração, E2E e validação (somente rede local; o fork lê um RPC público comum).
-# Subir:  docker compose -f tests/fixtures/docker-compose.yml up -d
-# Parar:  docker compose -f tests/fixtures/docker-compose.yml down
+# Local nodes for the integration, E2E and validation tests (local network only; the fork reads a common public RPC).
+# Start:  docker compose -f tests/fixtures/docker-compose.yml up -d
+# Stop:   docker compose -f tests/fixtures/docker-compose.yml down
 services:
   sepolia-fork:
     image: ghcr.io/foundry-rs/foundry:latest

@@ -1,60 +1,60 @@
-# Esquema do Arkiv no Safe Whistle
+# Arkiv schema in Safe Whistle
 
-O Safe Whistle usa o Arkiv (testnet **Rabdi**, chain id 7794095) como banco de dados público. Os registros são **cifrados**: o Arkiv guarda e indexa, mas o sigilo vem da criptografia feita no navegador. Código: `packages/arkiv-store/src/sdk-backend.ts` (esquemas) e `packages/arkiv-store/src/store.ts` (regras).
+Safe Whistle uses Arkiv (testnet **Rabdi**, chain id 7794095) as a public database. The records are **encrypted**: Arkiv stores and indexes, but secrecy comes from the encryption done in the browser. Code: `packages/arkiv-store/src/sdk-backend.ts` (schemas) and `packages/arkiv-store/src/store.ts` (rules).
 
-## Três tipos de entidade
+## Three entity types
 
-### `safe-whistle.denuncia`: o envelope cifrado
-| Coluna | Tipo | Indexada | Conteúdo |
+### `safe-whistle.denuncia`: the encrypted envelope
+| Column | Type | Indexed | Content |
 |---|---|---|---|
-| `newsroom` | texto | sim | Nome ENS da redação (`redacao.eth`) |
-| `category` | texto | sim | Categoria da política da redação |
-| `status` | texto | sim | Sempre `new` na criação (o estado real vem das anotações) |
-| `epoch` | u64 | sim | Mês (AAAAMM, UTC) |
-| `contentHash` | texto | sim | Hash BLAKE2b-256 do texto cifrado; agrupa as partes |
-| `pubkeyVersion` | u64 | não | Versão da chave da redação usada |
-| `part` / `parts` | u64 | não | Índice e total (anexos grandes viram várias entidades) |
-| `envelope` | bytes | não | Envelope cifrado (≤ 120 KiB por parte) |
+| `newsroom` | text | yes | ENS name of the newsroom (`newsroom.eth`) |
+| `category` | text | yes | Category of the newsroom policy |
+| `status` | text | yes | Always `new` on creation (the real state comes from the notes) |
+| `epoch` | u64 | yes | Month (YYYYMM, UTC) |
+| `contentHash` | text | yes | BLAKE2b-256 hash of the encrypted text; groups the parts |
+| `pubkeyVersion` | u64 | no | Version of the newsroom key used |
+| `part` / `parts` | u64 | no | Index and total (large attachments become several entities) |
+| `envelope` | bytes | no | Encrypted envelope (≤ 120 KiB per part) |
 
-**Quem escreve:** o relayer (carteira `RELAYER`). Logo depois, ele **transfere a propriedade** à redação. Sinalizadores: `readonly` e `permissionlessExtension`.
+**Who writes:** the relayer (wallet `RELAYER`). Right after, it **transfers ownership** to the newsroom. Flags: `readonly` and `permissionlessExtension`.
 
-### `safe-whistle.resposta`: resposta cifrada à fonte
-| Coluna | Tipo | Indexada | Conteúdo |
+### `safe-whistle.resposta`: encrypted reply to the source
+| Column | Type | Indexed | Content |
 |---|---|---|---|
-| `newsroom` | texto | sim | Redação que responde |
-| `mailboxId` | texto | sim | Hash da chave pública da caixa da fonte (a fonte busca por ele) |
-| `authorName` | texto, opcional | não | Nome ENS de quem respondeu (declaração; vale só se o `creator` for autorizado) |
-| `sealed` | bytes | não | Resposta cifrada para a chave da caixa |
+| `newsroom` | text | yes | Newsroom that replies |
+| `mailboxId` | text | yes | Hash of the source box's public key (the source searches by it) |
+| `authorName` | text, optional | no | ENS name of who replied (declaration; valid only if the `creator` is authorized) |
+| `sealed` | bytes | no | Reply encrypted to the box key |
 
-**Quem escreve:** o administrador ou um jornalista ativo.
+**Who writes:** the administrator or an active journalist.
 
-### `safe-whistle.anotacao`: status de uma denúncia
-| Coluna | Tipo | Indexada | Conteúdo |
+### `safe-whistle.anotacao`: status of a tip
+| Column | Type | Indexed | Content |
 |---|---|---|---|
-| `newsroom` | texto | sim | Redação |
-| `denunciaKey` | texto | sim | Chave da entidade de denúncia anotada |
-| `status` | texto | sim | `new`, `review`, `verified` ou `discarded` |
-| `byJournalist` | texto | sim | Endereço declarado de quem anotou |
-| `authorName` | texto, opcional | não | Nome ENS declarado |
-| `note` | bytes | não | Um byte (o dado útil está nos atributos) |
+| `newsroom` | text | yes | Newsroom |
+| `denunciaKey` | text | yes | Key of the annotated tip entity |
+| `status` | text | yes | `new`, `review`, `verified` or `discarded` |
+| `byJournalist` | text | yes | Declared address of who annotated |
+| `authorName` | text, optional | no | Declared ENS name |
+| `note` | bytes | no | One byte (the useful data is in the attributes) |
 
-O estado de uma denúncia é a **última anotação válida**; o envelope nunca muda.
+The state of a tip is the **last valid note**; the envelope never changes.
 
-## Regras que fazem parte do modelo de dados
-- **Custódia:** `$owner` da denúncia é a redação; `$creator` continua sendo o relayer. O relayer **não consegue apagar nem alterar** depois da transferência (medido na Rabdi, `validation/RESULTADOS.md`, V-01 e V-08).
-- **Autenticidade:** uma anotação ou resposta **só vale** se o `$creator` (definido pela cadeia, não forjável) for o administrador (custodiante no ENS) ou o dono de um subnome de jornalista ativo. As demais são ignoradas e contadas. `authorName` é só uma declaração conferida contra o ENS.
-- **Retenção:** 150 dias por padrão (`RETENTION_DAYS`). A vida máxima na cadeia é de 7.884.000 blocos (~182,5 dias): sem renovação a entidade some. Qualquer conta pode estender (`permissionlessExtension`); o relayer renova o que vence em até 60 dias.
-- **Nada identifica a fonte:** nenhum atributo guarda IP, conta, prova do World ID ou carteira da fonte.
+## Rules that are part of the data model
+- **Custody:** the tip's `$owner` is the newsroom; `$creator` remains the relayer. The relayer **cannot delete or change** after the transfer (measured on Rabdi, `validation/RESULTS.md`, V-01 and V-08).
+- **Authenticity:** a note or reply **is only valid** if the `$creator` (set by the chain, not forgeable) is the administrator (custodian in ENS) or the owner of an active journalist subname. The others are ignored and counted. `authorName` is only a declaration checked against ENS.
+- **Retention:** 150 days by default (`RETENTION_DAYS`). The maximum lifetime on chain is 7,884,000 blocks (~182.5 days): without renewal the entity disappears. Any account can extend (`permissionlessExtension`); the relayer renews what expires within 60 days.
+- **Nothing identifies the source:** no attribute stores IP, account, World ID proof or source wallet.
 
-## Consultas usadas
-| Consulta | Filtro | Onde |
+## Queries used
+| Query | Filter | Where |
 |---|---|---|
-| Caixa de entrada da redação | `newsroom` (+ `category`) em `denuncia` | `listSubmissions` |
-| Status | `newsroom` em `anotacao`; ou `denunciaKey` | `listAnnotations`, `latestStatus` |
-| Respostas da fonte | `mailboxId` em `resposta` | `getReplies` |
-| Prazos | `newsroom` em `denuncia`, comparando `expiresAtBlock` | `listExpiring`, `renewExpiring` |
+| Newsroom inbox | `newsroom` (+ `category`) in `denuncia` | `listSubmissions` |
+| Status | `newsroom` in `anotacao`; or `denunciaKey` | `listAnnotations`, `latestStatus` |
+| Source replies | `mailboxId` in `resposta` | `getReplies` |
+| Deadlines | `newsroom` in `denuncia`, comparing `expiresAtBlock` | `listExpiring`, `renewExpiring` |
 
-O Arkiv exige **ao menos um filtro** por consulta e limita a página a 100 itens; o código pagina.
+Arkiv requires **at least one filter** per query and limits the page to 100 items; the code paginates.
 
-## Como rodar uma consulta
-`npm run arkiv:query -- <redacao.eth> [denuncia|anotacao|resposta]` (veja o README, seção Arkiv).
+## How to run a query
+`npm run arkiv:query -- <newsroom.eth> [denuncia|anotacao|resposta]` (see the README, Arkiv section).

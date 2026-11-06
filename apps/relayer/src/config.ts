@@ -4,10 +4,10 @@ import { STORE_MAX_RETENTION_SECONDS } from "@safe-whistle/arkiv-store";
 
 export type ConfigProblem = { name: string; problem: string };
 
-/** Erro de configuração: lista NOMES de variáveis e o tipo de problema, nunca os valores. */
+/** Configuration error: lists variable NAMES and the type of problem, never the values. */
 export class ConfigError extends Error {
   constructor(public readonly problems: ConfigProblem[]) {
-    super(`Configuração inválida: ${problems.map((p) => `${p.name} (${p.problem})`).join("; ")}`);
+    super(`Invalid configuration: ${problems.map((p) => `${p.name} (${p.problem})`).join("; ")}`);
     this.name = "ConfigError";
   }
 }
@@ -29,7 +29,7 @@ export type Config = {
   renewWithinDays: number;
   maxBodyBytes: number;
   nullifierFile: string;
-  /** Aprova qualquer prova do World. Só para testes locais: exige os dois RPCs em localhost. */
+  /** Approves any World proof. For local tests only: requires both RPCs on localhost. */
   simulateWorld: boolean;
   rateLimitPerMinute: number;
   networkPolicy: NetworkPolicy;
@@ -45,8 +45,8 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   const get = (name: string) => (env[name] ?? "").trim();
   const required = (name: string, re: RegExp, what: string): string => {
     const v = get(name);
-    if (!v) bad(name, "ausente");
-    else if (!re.test(v)) bad(name, `formato inválido (${what})`);
+    if (!v) bad(name, "missing");
+    else if (!re.test(v)) bad(name, `invalid format (${what})`);
     return v;
   };
   const int = (name: string, def: number, min: number, max: number): number => {
@@ -54,7 +54,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     if (!v) return def;
     const n = Number(v);
     if (!Number.isInteger(n) || n < min || n > max) {
-      bad(name, `deve ser um inteiro entre ${min} e ${max}`);
+      bad(name, `must be an integer between ${min} and ${max}`);
       return def;
     }
     return n;
@@ -67,28 +67,28 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   const rpc = (name: string): string => {
     const v = get(name);
     if (!v) {
-      bad(name, "ausente");
+      bad(name, "missing");
       return "";
     }
     try {
       const u = new URL(v);
-      if (!(u.protocol === "https:" || (u.protocol === "http:" && LOCAL.has(u.hostname)))) bad(name, "deve ser https (ou http apenas em localhost)");
+      if (!(u.protocol === "https:" || (u.protocol === "http:" && LOCAL.has(u.hostname)))) bad(name, "must be https (or http only on localhost)");
     } catch {
-      bad(name, "URL inválida");
+      bad(name, "Invalid URL");
     }
     return v;
   };
 
-  const relayerPrivateKey = required("RELAYER_PRIVATE_KEY", /^0x[0-9a-fA-F]{64}$/, "0x + 64 hexadecimais");
-  const rpSigningKey = required("RP_SIGNING_KEY", /^(0x)?[0-9a-fA-F]{64}$/, "64 hexadecimais");
+  const relayerPrivateKey = required("RELAYER_PRIVATE_KEY", /^0x[0-9a-fA-F]{64}$/, "0x + 64 hex digits");
+  const rpSigningKey = required("RP_SIGNING_KEY", /^(0x)?[0-9a-fA-F]{64}$/, "64 hex digits");
   const appId = required("WORLD_APP_ID", /^app_[A-Za-z0-9]+$/, "app_…");
   const rpId = required("WORLD_RP_ID", /^rp_[A-Za-z0-9]+$/, "rp_…");
   const envName = get("WORLD_ENVIRONMENT") || "staging";
-  if (envName !== "staging" && envName !== "production") bad("WORLD_ENVIRONMENT", "deve ser staging ou production");
+  if (envName !== "staging" && envName !== "production") bad("WORLD_ENVIRONMENT", "must be staging or production");
   const sepoliaRpcUrl = rpc("SEPOLIA_RPC_URL");
   const arkivRpcUrl = rpc("ARKIV_RPC_URL");
-  const newsrooms = list("NEWSROOMS", isNewsroomName, "nomes .eth em minúsculas separados por vírgula");
-  const allowedOrigins = list("ALLOWED_ORIGINS", (s) => ORIGIN_RE.test(s), "origens https exatas (sem curinga)");
+  const newsrooms = list("NEWSROOMS", isNewsroomName, "lowercase .eth names separated by commas");
+  const allowedOrigins = list("ALLOWED_ORIGINS", (s) => ORIGIN_RE.test(s), "exact https origins (no wildcard)");
   const maxDays = Math.floor(STORE_MAX_RETENTION_SECONDS / DAY);
   const retentionDays = int("RETENTION_DAYS", 150, 1, maxDays);
   const renewWithinDays = int("RENEW_WITHIN_DAYS", 60, 1, maxDays);
@@ -97,7 +97,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   const maxBodyBytes = int("MAX_BODY_BYTES", 1024 * 1024, 1000, 10 * 1024 * 1024);
 
   const simulate = get("SIMULATE_WORLD");
-  if (simulate !== "" && simulate !== "0" && simulate !== "1") bad("SIMULATE_WORLD", "deve ser 0 ou 1");
+  if (simulate !== "" && simulate !== "0" && simulate !== "1") bad("SIMULATE_WORLD", "must be 0 or 1");
   const isLocal = (url: string) => {
     try {
       return LOCAL.has(new URL(url).hostname);
@@ -105,7 +105,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
       return false;
     }
   };
-  if (simulate === "1" && !(isLocal(sepoliaRpcUrl) && isLocal(arkivRpcUrl))) bad("SIMULATE_WORLD", "só é permitido com os dois RPCs em localhost");
+  if (simulate === "1" && !(isLocal(sepoliaRpcUrl) && isLocal(arkivRpcUrl))) bad("SIMULATE_WORLD", "only allowed with both RPCs on localhost");
 
   if (problems.length > 0) throw new ConfigError(problems);
 
@@ -125,7 +125,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   };
 }
 
-/** Cópia segura para registrar ou exibir: sem nenhum segredo. */
+/** Safe copy for logging or display: with no secrets. */
 export function redact(config: Config): Record<string, unknown> {
   return { ...config, relayerPrivateKey: "***", rpSigningKey: "***", arkivAccessKey: config.arkivAccessKey ? "***" : undefined };
 }

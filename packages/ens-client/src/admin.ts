@@ -8,17 +8,17 @@ const ZERO32 = ("0x" + "00".repeat(32)) as Hex;
 const YEAR = 31_536_000n;
 const DEFAULT_JOURNALIST_SECONDS = 180 * 24 * 3600;
 
-/** Etapas do cadastro, para a tela mostrar o andamento (leva alguns minutos na rede real). */
+/** Registration steps, for the screen to show progress (takes a few minutes on the real network). */
 export type AdminStep = { step: "resolver" | "commit" | "commit_wait" | "register" | "records" | "registry" | "done"; seconds?: number };
 
 export type AdminDeps = {
   publicClient: PublicClient;
   walletClient: WalletClient<Transport, Chain, Account>;
-  /** Espera do commit-reveal: em produção dorme; no fork, avança o relógio da rede. */
+  /** Commit-reveal wait: in production it sleeps; on the fork, it advances the network clock. */
   wait: (seconds: number) => Promise<void>;
-  /** Origem da aleatoriedade do segredo do commit (injetável). */
+  /** Source of randomness for the commit secret (injectable). */
   random?: (n: number) => Uint8Array;
-  /** Token de teste da Sepolia (mint livre). Em redes sem ele, desligue. */
+  /** Sepolia test token (free mint). On networks without it, turn it off. */
   mintTestToken?: boolean;
   onProgress?: (e: AdminStep) => void;
 };
@@ -49,7 +49,7 @@ export function createAdmin(deps: AdminDeps) {
   async function send(request: object): Promise<void> {
     const hash = await walletClient.writeContract(request as never);
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    if (receipt.status !== "success") throw new Error(`Transação falhou: ${hash}`);
+    if (receipt.status !== "success") throw new Error(`Transaction failed: ${hash}`);
   }
 
   const chainNow = async () => Number((await publicClient.getBlock()).timestamp);
@@ -70,7 +70,7 @@ export function createAdmin(deps: AdminDeps) {
 
   async function registerName(label: string, resolver: Address, durationSeconds: bigint): Promise<void> {
     const available = await publicClient.readContract({ address: ethRegistrar, abi: ABIS.ethRegistrar, functionName: "isAvailable", args: [label] });
-    if (!available) throw new Error(`O nome ${label}.eth não está disponível.`);
+    if (!available) throw new Error(`The name ${label}.eth is not available.`);
     const secret = toHex(random(32));
     const commitment = (await publicClient.readContract({
       address: ethRegistrar, abi: ABIS.ethRegistrar, functionName: "makeCommitment",
@@ -105,7 +105,7 @@ export function createAdmin(deps: AdminDeps) {
       encodeFunctionData({ abi: ABIS.permissionedResolver, functionName: "setAddress", args: [dnsEncode(name), 60n, r.custodian] }),
     ];
     if (r.relayers?.length) calls.push(textCall(name, ENS_KEYS.relayer, r.relayers.join(",")));
-    await resolverCall(resolver, "multicall", [calls]); // uma única transação
+    await resolverCall(resolver, "multicall", [calls]); // a single transaction
   }
 
   async function createJournalistRegistry(label: string): Promise<Address> {
@@ -121,9 +121,9 @@ export function createAdmin(deps: AdminDeps) {
     (await publicClient.readContract({ address: subRegistry, abi: ABIS.userRegistry, functionName: "getTokenId", args: [labelId(label)] })) as bigint;
 
   return {
-    /** Cadastra a redação: resolver próprio, nome .eth (commit-reveal), registros e registry dos jornalistas. */
+    /** Registers the newsroom: its own resolver, .eth name (commit-reveal), records, and the journalists' registry. */
     async createNewsroom(input: CreateNewsroomInput): Promise<Newsroom> {
-      if (!LABEL_RE.test(input.label)) throw new Error(`Rótulo inválido: "${input.label}"`);
+      if (!LABEL_RE.test(input.label)) throw new Error(`Invalid label: "${input.label}"`);
       const name = `${input.label}.eth`;
       deps.onProgress?.({ step: "resolver" });
       const resolver = await deployResolver(input.label);
@@ -140,22 +140,22 @@ export function createAdmin(deps: AdminDeps) {
       await resolverCall(a.resolver, "setText", [dnsEncode(a.name), a.key, a.value]);
     },
 
-    /** Publica uma chave nova com versão MAIOR que a atual. */
+    /** Publishes a new key with a version GREATER than the current one. */
     async rotateKey(a: { name: string; resolver: Address; publicKey: Uint8Array; version: number }): Promise<void> {
       const current = Number((await publicClient.getEnsText({ name: a.name, key: ENS_KEYS.pubkeyVersion, universalResolverAddress: ENSV2_SEPOLIA.universalResolver as Address })) ?? 0);
-      if (!Number.isInteger(a.version) || a.version <= current) throw new Error(`A nova versão (${a.version}) deve ser maior que a versão atual (${current}).`);
+      if (!Number.isInteger(a.version) || a.version <= current) throw new Error(`The new version (${a.version}) must be greater than the current version (${current}).`);
       await resolverCall(a.resolver, "multicall", [[textCall(a.name, ENS_KEYS.pubkey, toBase64Url(a.publicKey)), textCall(a.name, ENS_KEYS.pubkeyVersion, String(a.version))]]);
     },
 
-    /** Cadastra o jornalista como subname (sem papel de transferência) e publica a chave de leitura. */
+    /** Registers the journalist as a subname (without transfer role) and publishes the reader key. */
     async addJournalist(a: { newsroom: Newsroom; label: string; address: Address; readerKey: Uint8Array; validForSeconds?: number }): Promise<void> {
-      if (!LABEL_RE.test(a.label)) throw new Error(`Rótulo de jornalista inválido: "${a.label}"`);
+      if (!LABEL_RE.test(a.label)) throw new Error(`Invalid journalist label: "${a.label}"`);
       const expiry = BigInt((await chainNow()) + (a.validForSeconds ?? DEFAULT_JOURNALIST_SECONDS));
       await send({ address: a.newsroom.subRegistry, abi: ABIS.userRegistry, functionName: "register", args: [a.label, a.address, ZERO, a.newsroom.resolver, ROLES.registry.setResolver, expiry] });
       await resolverCall(a.newsroom.resolver, "setText", [dnsEncode(`${a.label}.${a.newsroom.name}`), ENS_KEYS.readerKey, toBase64Url(a.readerKey)]);
     },
 
-    /** Revoga: `unregister` e, em seguida, limpa a chave de leitura (ela continuaria legível). */
+    /** Revokes: `unregister` and then clears the reader key (it would remain readable). */
     async revokeJournalist(a: { newsroom: Newsroom; label: string }): Promise<void> {
       const token = await journalistToken(a.newsroom.subRegistry, a.label);
       await send({ address: a.newsroom.subRegistry, abi: ABIS.userRegistry, functionName: "unregister", args: [token] });

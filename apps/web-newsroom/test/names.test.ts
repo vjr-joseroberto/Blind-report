@@ -9,8 +9,8 @@ function memory(initial: Record<string, string> = {}) {
   return { data, storage: { getItem: (k: string) => data[k] ?? null, setItem: (k: string, v: string) => void (data[k] = v), removeItem: (k: string) => void delete data[k] } };
 }
 
-describe("memória local dos nomes das redações (só nomes, nunca chaves)", () => {
-  it("lembra_por_carteira_com_o_mais_recente_primeiro", () => {
+describe("local memory of newsroom names (names only, never keys)", () => {
+  it("remembers_by_wallet_with_the_most_recent_first", () => {
     const { storage } = memory();
     const s = createNamesStore(storage);
     s.remember(A, { newsroom: "a.eth" });
@@ -21,7 +21,7 @@ describe("memória local dos nomes das redações (só nomes, nunca chaves)", ()
     expect(s.list(A.toLowerCase() as never)).toHaveLength(2);
   });
 
-  it("nao_repete_e_limita_a_quantidade", () => {
+  it("does_not_repeat_and_limits_the_amount", () => {
     const s = createNamesStore(memory().storage);
     for (let i = 0; i < 30; i++) s.remember(A, { newsroom: `n${i}.eth` });
     s.remember(A, { newsroom: "n29.eth" });
@@ -30,7 +30,7 @@ describe("memória local dos nomes das redações (só nomes, nunca chaves)", ()
     expect(s.list(A).filter((e) => e.newsroom === "n29.eth")).toHaveLength(1);
   });
 
-  it("so_aceita_nomes_validos_e_descarta_qualquer_outro_campo", () => {
+  it("accepts_only_valid_names_and_discards_any_other_field", () => {
     const { storage, data } = memory();
     const s = createNamesStore(storage);
     s.remember(A, { newsroom: "Invalida" });
@@ -40,7 +40,7 @@ describe("memória local dos nomes das redações (só nomes, nunca chaves)", ()
     expect(Object.values(data).join("")).not.toMatch(/segredo|password|privateKey/);
   });
 
-  it("esquece_um_nome", () => {
+  it("forgets_a_name", () => {
     const s = createNamesStore(memory().storage);
     s.remember(A, { newsroom: "a.eth" });
     s.remember(A, { newsroom: "b.eth" });
@@ -48,23 +48,23 @@ describe("memória local dos nomes das redações (só nomes, nunca chaves)", ()
     expect(s.list(A)).toEqual([{ newsroom: "b.eth" }]);
   });
 
-  it("conteudo_corrompido_ou_adulterado_vira_lista_vazia_ou_filtrada", () => {
+  it("corrupted_or_tampered_content_becomes_an_empty_or_filtered_list", () => {
     const key = "sw.names.v1." + A.toLowerCase();
     expect(createNamesStore(memory({ [key]: "lixo{" }).storage).list(A)).toEqual([]);
     expect(createNamesStore(memory({ [key]: JSON.stringify({ a: 1 }) }).storage).list(A)).toEqual([]);
     expect(createNamesStore(memory({ [key]: JSON.stringify([{ newsroom: "<script>.eth" }, { newsroom: "bom.eth", extra: 1 }, 5, null]) }).storage).list(A)).toEqual([{ newsroom: "bom.eth" }]);
   });
 
-  it("sem_armazenamento_ou_com_erro_nao_quebra_nada", () => {
+  it("without_storage_or_with_an_error_nothing_breaks", () => {
     const none = createNamesStore(undefined);
     none.remember(A, { newsroom: "a.eth" });
     expect(none.list(A)).toEqual([]);
-    const broken = createNamesStore({ getItem: () => { throw new Error("bloqueado"); }, setItem: () => { throw new Error("cheio"); }, removeItem: () => { throw new Error("x"); } });
+    const broken = createNamesStore({ getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("full"); }, removeItem: () => { throw new Error("x"); } });
     expect(() => { broken.remember(A, { newsroom: "a.eth" }); broken.forget(A, "a.eth"); }).not.toThrow();
     expect(broken.list(A)).toEqual([]);
   });
 
-  it("usa_uma_chave_propria_com_prefixo_e_versao", () => {
+  it("uses_its_own_key_with_prefix_and_version", () => {
     const { storage, data } = memory();
     createNamesStore(storage).remember(A, { newsroom: "a.eth" });
     expect(Object.keys(data)).toEqual(["sw.names.v1." + A.toLowerCase()]);

@@ -2,7 +2,7 @@ import type { Logger, RelayerDeps } from "./types.ts";
 
 export type RenewalResult = { newsroom: string; renewed: number; error?: string };
 
-/** Job periódico: renova as denúncias que vencem em breve (a vida máxima na cadeia é de ~182 dias). */
+/** Periodic job: renews tips that expire soon (the maximum on-chain life is ~182 days). */
 export function createRenewalJob(opts: {
   store: Pick<RelayerDeps["store"], "renewExpiring">;
   newsrooms: string[];
@@ -29,7 +29,7 @@ export function createRenewalJob(opts: {
           } catch {
             if (attempt < maxAttempts) await opts.sleep(baseDelayMs * 2 ** (attempt - 1));
             else {
-              results.push({ newsroom, renewed: 0, error: "falha ao renovar" });
+              results.push({ newsroom, renewed: 0, error: "failed to renew" });
               opts.logger.error({ job: "renewal", newsroom, attempts: maxAttempts });
             }
           }

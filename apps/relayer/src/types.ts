@@ -6,7 +6,7 @@ import type { Hex } from "viem";
 export type HttpRequest = { method: string; path: string; query: URLSearchParams; headers: Record<string, string>; body: Uint8Array };
 export type HttpResponse = { status: number; headers: Record<string, string>; body: string };
 
-/** O log nunca recebe IP, cabeçalhos, corpo, prova nem identificadores: só rota, status e um código. */
+/** The log never receives IP, headers, body, proof or identifiers: only route, status and a code. */
 export type Logger = { info(event: Record<string, unknown>): void; error(event: Record<string, unknown>): void };
 
 export type RelayerDeps = {
@@ -24,6 +24,6 @@ export type RelayerDeps = {
   maxBodyBytes: number;
   retentionSeconds: number;
   allowedOrigins: string[];
-  /** Limite global de requisições (opcional). */
+  /** Global request limit (optional). */
   limiter?: { tryTake(): boolean };
 };

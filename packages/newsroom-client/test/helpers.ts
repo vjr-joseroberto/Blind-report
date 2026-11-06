@@ -44,7 +44,7 @@ export function makeDeps(over: Partial<NewsroomDeps> = {}) {
   return { deps, admin, reader, owners, chain, calls, relayerStore };
 }
 
-/** Faz o papel da fonte + relayer: cifra para a chave dada e publica no Arkiv em memória. */
+/** Plays the role of the source + relayer: encrypts for the given key and publishes to the in-memory Arkiv. */
 export async function publishAs(f: ReturnType<typeof makeDeps>, key: { version: number; publicKey: Uint8Array }, o: { text?: string; category?: string; attachment?: { name: string; data: Uint8Array } } = {}) {
   const { envelope, receipt } = seal({
     newsroom: ENS.name, pubkeyVersion: key.version, category: o.category ?? "saude",

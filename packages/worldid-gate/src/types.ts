@@ -1,4 +1,4 @@
-/** Resultado do IDKit (World ID 4.0): mantemos só os campos que usamos; o restante é repassado à API do World. */
+/** IDKit result (World ID 4.0): we keep only the fields we use; the rest is forwarded to the World API. */
 export type IdKitPayload = {
   protocol_version?: string;
   nonce?: string;
@@ -13,16 +13,16 @@ export type VerifyResult = {
   environment?: string;
   action?: string;
   nullifier?: string;
-  /** Motivo, quando `success` é falso. */
+  /** Reason, when `success` is false. */
   error?: string;
 };
 
-/** Nunca lança por prova recusada ou falha de rede: devolve `success: false` com o motivo. */
+/** Never throws for a rejected proof or network failure: returns `success: false` with the reason. */
 export type Verifier = (payload: IdKitPayload) => Promise<VerifyResult>;
 
 export type NullifierStore = {
   has(key: string): Promise<boolean>;
-  /** Reserva a chave. Devolve `true` só para quem a reservou primeiro. */
+  /** Claims the key. Returns `true` only for whoever claimed it first. */
   claim(key: string): Promise<boolean>;
   release(key: string): Promise<void>;
 };

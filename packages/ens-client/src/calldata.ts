@@ -6,7 +6,7 @@ export function setTextCalldata(name: string, key: string, value: string): Hex {
   return encodeFunctionData({ abi: ABIS.permissionedResolver, functionName: "setText", args: [dnsEncode(name), key, value] });
 }
 
-/** Chamada usada só para identificar a chave de texto em `grantSetterRoles` (o valor é vazio). */
+/** Call used only to identify the text key in `grantSetterRoles` (the value is empty). */
 export function setterFor(name: string, key: string): Hex {
   return setTextCalldata(name, key, "");
 }

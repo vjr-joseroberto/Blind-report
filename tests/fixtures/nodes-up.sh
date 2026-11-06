@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe os nós locais com `docker run` (equivalente ao docker-compose.yml, para máquinas sem o plugin compose).
+# Starts the local nodes with `docker run` (equivalent to docker-compose.yml, for machines without the compose plugin).
 set -euo pipefail
 SEPOLIA_RPC="${SEPOLIA_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
 docker rm -f sw-sepolia-fork sw-arkiv-local >/dev/null 2>&1 || true
@@ -12,4 +12,4 @@ for i in 1 2 3; do
 done
 docker run -d --name sw-arkiv-local --network host ghcr.io/arkiv-network/arkiv-reth-dev:latest \
   node --dev --dev.block-time 2s --http --http.addr 127.0.0.1 --http.port 8546 --http.api eth,net,web3,debug,txpool,rpc >/dev/null
-echo "fork da Sepolia em :8545 e nó Arkiv local em :8546"
+echo "Sepolia fork on :8545 and local Arkiv node on :8546"

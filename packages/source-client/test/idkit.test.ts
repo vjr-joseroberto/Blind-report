@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ProofError, proofErrorFromIdKit } from "../src/index.ts";
 
-describe("tradução dos erros do IDKit", () => {
+describe("translation of IDKit errors", () => {
   it.each([
     ["timeout", "expired"], ["Request expired", "expired"], ["user cancelled the request", "cancelled"], ["aborted", "cancelled"],
     ["verification rejected", "denied"], ["connection_failed", "denied"], [undefined, "denied"],

@@ -1,7 +1,7 @@
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const LOOKUP = new Map([...ALPHABET].map((c, i) => [c, i]));
 
-/** Base64 seguro para URL, sem preenchimento (=). Usado para chaves públicas em registros de texto do ENS. */
+/** URL-safe Base64 without padding (=). Used for public keys in ENS text records. */
 export function toBase64Url(bytes: Uint8Array): string {
   let out = "";
   for (let i = 0; i < bytes.length; i += 3) {
@@ -14,13 +14,13 @@ export function toBase64Url(bytes: Uint8Array): string {
 }
 
 export function fromBase64Url(text: string): Uint8Array {
-  if (text.length % 4 === 1) throw new RangeError("Tamanho base64url impossível.");
+  if (text.length % 4 === 1) throw new RangeError("Impossible base64url length.");
   const out: number[] = [];
   let buffer = 0;
   let bits = 0;
   for (const ch of text) {
     const v = LOOKUP.get(ch);
-    if (v === undefined) throw new RangeError(`Caractere base64url inválido: "${ch}"`);
+    if (v === undefined) throw new RangeError(`Invalid base64url character: "${ch}"`);
     buffer = (buffer << 6) | v;
     bits += 6;
     if (bits >= 8) {

@@ -3,23 +3,23 @@ import { CryptoError } from "./errors.ts";
 import { hashHex } from "./hash.ts";
 import { sodium } from "./sodium.ts";
 
-/** Identificador público da caixa de respostas: hash da chave pública efêmera da fonte. */
+/** Public identifier of the reply mailbox: hash of the source's ephemeral public key. */
 export function mailboxId(mailboxPub: Uint8Array): string {
   return hashHex(mailboxPub);
 }
 
-/** A redação cifra a resposta para a chave efêmera da fonte. */
+/** The newsroom encrypts the reply to the source's ephemeral key. */
 export function sealReply(mailboxPub: Uint8Array, plaintext: Uint8Array): Uint8Array {
-  if (mailboxPub.length !== sodium.crypto_box_PUBLICKEYBYTES) throw new CryptoError("key", "Chave do mailbox inválida.");
-  if (plaintext.length === 0) throw new CryptoError("input", "A resposta não pode ser vazia.");
+  if (mailboxPub.length !== sodium.crypto_box_PUBLICKEYBYTES) throw new CryptoError("key", "Invalid mailbox key.");
+  if (plaintext.length === 0) throw new CryptoError("input", "The reply cannot be empty.");
   return sodium.crypto_box_seal(plaintext, mailboxPub);
 }
 
-/** A fonte abre a resposta com o recibo. */
+/** The source opens the reply with the receipt. */
 export function openReply(sealed: Uint8Array, receipt: Pick<Receipt, "mailboxPub" | "mailboxPriv">): Uint8Array {
   try {
     return sodium.crypto_box_seal_open(sealed, receipt.mailboxPub, receipt.mailboxPriv);
   } catch {
-    throw new CryptoError("decrypt", "Não foi possível abrir a resposta: recibo errado ou conteúdo adulterado.");
+    throw new CryptoError("decrypt", "Could not open the reply: wrong receipt or tampered content.");
   }
 }

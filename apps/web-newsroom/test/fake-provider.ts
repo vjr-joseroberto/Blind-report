@@ -2,7 +2,7 @@ import type { Hex } from "viem";
 import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 import type { Eip1193 } from "../src/wallet.ts";
 
-/** Carteira falsa (EIP-1193), sem navegador: assina de verdade com uma conta local do viem. */
+/** Fake wallet (EIP-1193), without a browser: really signs with a local viem account. */
 export function fakeWallet(opts: { account?: PrivateKeyAccount; chainId?: string; known?: string[]; reject?: string[]; noAddPopup?: boolean } = {}) {
   const account = opts.account ?? privateKeyToAccount(("0x" + "11".repeat(32)) as Hex);
   const state = { chainId: opts.chainId ?? "0x1", known: new Set(opts.known ?? ["0x1", "0xaa36a7"]), account };
@@ -37,7 +37,7 @@ export function fakeWallet(opts: { account?: PrivateKeyAccount; chainId?: string
         case "eth_sendTransaction":
           return ("0x" + (++tx).toString(16).padStart(64, "0")) as Hex;
         default:
-          throw err(-32601, `método não suportado: ${method}`);
+          throw err(-32601, `unsupported method: ${method}`);
       }
     },
     on(event, handler) {

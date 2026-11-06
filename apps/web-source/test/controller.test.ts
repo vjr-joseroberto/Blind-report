@@ -21,30 +21,30 @@ function make(over: Record<string, any> = {}) {
   return { c, client, states };
 }
 
-describe("passo 1: escolher a redação", () => {
-  it("renderiza_as_categorias_da_politica_depois_de_buscar", async () => {
+describe("step 1: choose the newsroom", () => {
+  it("renders_the_policy_categories_after_searching", async () => {
     const { c } = make();
     await c.lookup("investiga.eth");
     expect(c.state).toMatchObject({ step: "compose", newsroom: { name: "investiga.eth", version: 2, categories: ["saude", "corrupcao"], maxBytes: 10_000, attachments: false } });
   });
 
-  it("mostra_a_causa_do_erro_e_continua_no_passo_1", async () => {
-    const { c } = make({ lookupNewsroom: vi.fn(async () => { throw new SourceError("newsroom_not_found", "Redação não encontrada. Confira o nome."); }) });
+  it("shows_the_cause_of_the_error_and_stays_on_step_1", async () => {
+    const { c } = make({ lookupNewsroom: vi.fn(async () => { throw new SourceError("newsroom_not_found", "Newsroom not found. Check the name."); }) });
     await c.lookup("nada.eth");
     expect(c.state.step).toBe("newsroom");
-    expect(c.state.error).toEqual({ code: "newsroom_not_found", message: "Redação não encontrada. Confira o nome." });
+    expect(c.state.error).toEqual({ code: "newsroom_not_found", message: "Newsroom not found. Check the name." });
   });
 
-  it("erro_inesperado_vira_mensagem_generica_sem_detalhes", async () => {
-    const { c } = make({ lookupNewsroom: vi.fn(async () => { throw new Error("segredo interno 10.0.0.1"); }) });
+  it("unexpected_error_becomes_a_generic_message_without_details", async () => {
+    const { c } = make({ lookupNewsroom: vi.fn(async () => { throw new Error("internal secret 10.0.0.1"); }) });
     await c.lookup("investiga.eth");
     expect(c.state.error?.message).not.toContain("10.0.0.1");
     expect(c.state.error?.code).toBe("unexpected");
   });
 });
 
-describe("passos 2 a 4: enviar", () => {
-  it("vai_para_o_passo_da_prova_enquanto_envia_e_termina_no_recibo", async () => {
+describe("steps 2 to 4: send", () => {
+  it("goes_to_the_proof_step_while_sending_and_ends_on_the_receipt", async () => {
     const { c, states } = make();
     await c.lookup("investiga.eth");
     await c.submit({ category: "saude", text: "oi" });
@@ -53,7 +53,7 @@ describe("passos 2 a 4: enviar", () => {
     expect(parseReceipt(c.state.receiptText!)).toEqual(RECEIPT);
   });
 
-  it("recibo_so_conclui_depois_de_confirmar_que_foi_guardado", async () => {
+  it("receipt_only_finishes_after_confirming_it_was_saved", async () => {
     const { c } = make();
     await c.lookup("investiga.eth");
     await c.submit({ category: "saude", text: "oi" });
@@ -65,25 +65,25 @@ describe("passos 2 a 4: enviar", () => {
     expect(c.state.receiptText).toBeUndefined();
   });
 
-  it("prova_cancelada_volta_ao_passo_2_com_a_causa", async () => {
+  it("cancelled_proof_returns_to_step_2_with_the_cause", async () => {
     const { c, client } = make();
     await c.lookup("investiga.eth");
-    client.submit.mockRejectedValueOnce(new SourceError("proof_cancelled", "Você cancelou a prova."));
+    client.submit.mockRejectedValueOnce(new SourceError("proof_cancelled", "You cancelled the proof."));
     await c.submit({ category: "saude", text: "oi" });
     expect(c.state.step).toBe("compose");
     expect(c.state.error?.code).toBe("proof_cancelled");
     expect(c.state.receiptText).toBeUndefined();
   });
 
-  it("limite_atingido_mostra_o_texto_do_cliente", async () => {
+  it("limit_reached_shows_the_client_text", async () => {
     const { c, client } = make();
     await c.lookup("investiga.eth");
-    client.submit.mockRejectedValueOnce(new SourceError("limit_reached", "Você já enviou para esta redação neste mês. Tente de novo no próximo mês."));
+    client.submit.mockRejectedValueOnce(new SourceError("limit_reached", "You already sent to this newsroom this month. Try again next month."));
     await c.submit({ category: "saude", text: "oi" });
-    expect(c.state.error?.message).toMatch(/já enviou/);
+    expect(c.state.error?.message).toMatch(/already sent/);
   });
 
-  it("o_link_da_prova_aparece_no_estado", async () => {
+  it("the_proof_link_appears_in_the_state", async () => {
     const { c, client } = make();
     await c.lookup("investiga.eth");
     client.submit.mockImplementationOnce(async () => {
@@ -95,15 +95,15 @@ describe("passos 2 a 4: enviar", () => {
     expect(c.state.proofLink).toBeUndefined();
   });
 
-  it("enviar_sem_buscar_a_redacao_e_ignorado", async () => {
+  it("sending_without_searching_the_newsroom_is_ignored", async () => {
     const { c, client } = make();
     await c.submit({ category: "saude", text: "oi" });
     expect(client.submit).not.toHaveBeenCalled();
   });
 });
 
-describe("respostas e verificação", () => {
-  it("abre_o_recibo_colado_e_lista_as_respostas", async () => {
+describe("replies and verification", () => {
+  it("opens_the_pasted_receipt_and_lists_the_replies", async () => {
     const { c } = make();
     await c.lookup("investiga.eth");
     await c.submit({ category: "saude", text: "oi" });
@@ -114,7 +114,7 @@ describe("respostas e verificação", () => {
     expect(c2.state.ignoredReplies).toBe(0);
   });
 
-  it("mostra_quantas_respostas_foram_ignoradas", async () => {
+  it("shows_how_many_replies_were_ignored", async () => {
     const { c, client } = make();
     await c.lookup("investiga.eth");
     await c.submit({ category: "saude", text: "oi" });
@@ -124,14 +124,14 @@ describe("respostas e verificação", () => {
     expect(c.state.replies).toEqual([]);
   });
 
-  it("recibo_invalido_mostra_erro", async () => {
+  it("invalid_receipt_shows_an_error", async () => {
     const { c } = make();
     await c.loadReplies("lixo");
     expect(c.state.error?.code).toBe("invalid_receipt");
     expect(c.state.replies).toBeUndefined();
   });
 
-  it("verifica_arquivo_e_autoria", async () => {
+  it("verifies_file_and_authorship", async () => {
     const { c, client } = make();
     await c.verify({ newsroom: "investiga.eth", envelope: new Uint8Array([1]) });
     expect(c.state.verification).toEqual({ hashMatches: true, found: true, createdAtBlock: 9n, contentHash: "0xaa" });
@@ -139,15 +139,15 @@ describe("respostas e verificação", () => {
     expect(client.proveAuthorship).toHaveBeenCalled();
   });
 
-  it("erro_ao_verificar_aparece_no_estado", async () => {
-    const { c } = make({ verifyDocument: vi.fn(async () => { throw new SourceError("invalid_envelope", "O arquivo não é um envelope do Safe Whistle."); }) });
+  it("error_while_verifying_appears_in_the_state", async () => {
+    const { c } = make({ verifyDocument: vi.fn(async () => { throw new SourceError("invalid_envelope", "The file is not a Safe Whistle envelope."); }) });
     await c.verify({ newsroom: "investiga.eth", envelope: new Uint8Array([1]) });
     expect(c.state.error?.code).toBe("invalid_envelope");
   });
 });
 
 describe("cancellable", () => {
-  it("cancelar_rejeita_com_prova_cancelada", async () => {
+  it("cancel_rejects_with_proof_cancelled", async () => {
     const never = () => new Promise<never>(() => {});
     const { provider, cancel } = cancellable(never as never);
     const p = provider({} as never);
@@ -155,12 +155,12 @@ describe("cancellable", () => {
     await expect(p).rejects.toMatchObject({ reason: "cancelled" });
   });
 
-  it("repassa_o_resultado_quando_nao_cancela", async () => {
+  it("passes_the_result_through_when_not_cancelled", async () => {
     const { provider } = cancellable((async () => ({ ok: 1 })) as never);
     await expect(provider({} as never)).resolves.toEqual({ ok: 1 });
   });
 
-  it("cancelar_sem_prova_em_andamento_nao_faz_nada", () => {
+  it("cancelling_without_a_proof_in_progress_does_nothing", () => {
     expect(() => cancellable((async () => ({})) as never).cancel()).not.toThrow();
   });
 });

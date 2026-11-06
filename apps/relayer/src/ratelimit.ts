@@ -1,6 +1,6 @@
-/** Balde de fichas GLOBAL (sem IP nem estado por pessoa): protege o RPC e o World sem rastrear ninguém. */
+/** GLOBAL token bucket (no IP or per-person state): protects the RPC and World without tracking anyone. */
 export function createRateLimiter(opts: { perMinute: number; now: () => number }) {
-  if (!Number.isInteger(opts.perMinute) || opts.perMinute < 1) throw new RangeError("perMinute deve ser um inteiro positivo.");
+  if (!Number.isInteger(opts.perMinute) || opts.perMinute < 1) throw new RangeError("perMinute must be a positive integer.");
   const capacity = opts.perMinute;
   let tokens = capacity;
   let last = opts.now();

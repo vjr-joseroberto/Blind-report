@@ -1,4 +1,4 @@
-// Fluxo de envio completo: ENS (fork da Sepolia) + Arkiv (nó local) + relayer, com o verificador do World SIMULADO.
+// Full submission flow: ENS (Sepolia fork) + Arkiv (local node) + relayer, with the SIMULATED World verifier.
 import { createPublicClient as createArkivPublicClient, createWalletClient as createArkivWalletClient } from "@arkiv-network/sdk";
 import { localhost } from "@arkiv-network/sdk/chains";
 import { createSdkBackend, createStore } from "@safe-whistle/arkiv-store";
@@ -19,7 +19,7 @@ import { nullifierOf } from "./nullifier.ts";
 
 const FORK = "http://127.0.0.1:8545";
 const ARKIV = "http://127.0.0.1:8546";
-const FUNDER = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as Hex; // conta pré-financiada do nó Arkiv de desenvolvimento
+const FUNDER = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as Hex; // pre-funded account of the development Arkiv node
 
 const forkPublic = createPublicClient({ chain: sepolia, transport: http(FORK) });
 const forkTest = createTestClient({ mode: "anvil", chain: sepolia, transport: http(FORK) });
@@ -33,7 +33,7 @@ let newsroomAddress: Hex;
 const keys = newKeypair();
 
 beforeAll(async () => {
-  // 1) a redação se cadastra no ENS (fork), com a chave pública e a política
+  // 1) the newsroom signs up in ENS (fork), with the public key and the policy
   const owner = privateKeyToAccount(generatePrivateKey());
   await forkTest.setBalance({ address: owner.address, value: parseEther("100") });
   const admin = createAdmin({
@@ -45,7 +45,7 @@ beforeAll(async () => {
   const nr = await admin.createNewsroom({ label, publicKey: keys.publicKey, version: 1, policy: { categories: ["saude", "corrupcao"], maxBytes: 100_000, attachments: false, epoch: "monthly" }, custodian: newsroomAddress });
   name = nr.name;
 
-  // 2) conta do relayer, com saldo no nó Arkiv
+  // 2) relayer account, funded on the Arkiv node
   relayerKey = generatePrivateKey();
   const funder = arkivWallet(FUNDER);
   await arkivPublic.waitForTransactionReceipt({ hash: await funder.sendTransaction({ to: privateKeyToAccount(relayerKey).address, value: 10n ** 18n }) });
@@ -74,8 +74,8 @@ function submission(person: string, plaintext: string) {
   return { body: new TextEncoder().encode(JSON.stringify({ newsroom: name, epoch, category: "saude", hasAttachment: false, proof, envelope: toBase64Url(encodeEnvelope(envelope)) })), plaintext };
 }
 
-describe("relayer ponta a ponta (ENS real no fork + Arkiv real local)", () => {
-  it("fluxo_de_envio_completo_a_redacao_decifra_e_a_custodia_e_dela", async () => {
+describe("relayer end to end (real ENS on the fork + real local Arkiv)", () => {
+  it("complete_submission_flow_the_newsroom_decrypts_and_custody_is_hers", async () => {
     const { app, recorder } = build();
 
     const ctx = await get(app, `/rp-context?newsroom=${name}`);
@@ -86,23 +86,23 @@ describe("relayer ponta a ponta (ENS real no fork + Arkiv real local)", () => {
     const res = await app.handle({ method: "POST", path: "/submissions", query: new URLSearchParams(), headers: {}, body: sub.body });
     expect(res.status, res.body).toBe(201);
 
-    // a redação lista e decifra
+    // the newsroom lists and decrypts
     const reader = createStore(createSdkBackend({ publicClient: arkivPublic, walletClient: arkivWallet(generatePrivateKey()) }));
     const { items } = await reader.listSubmissions({ newsroom: name });
     expect(items).toHaveLength(1);
     const { decodeEnvelope } = await import("@safe-whistle/crypto");
     expect(new TextDecoder().decode(open(decodeEnvelope(items[0]!.envelope), "redacao", keys))).toBe(sub.plaintext);
 
-    // a custódia é da redação e o criador é o relayer
+    // custody belongs to the newsroom and the creator is the relayer
     const row = await createSdkBackend({ publicClient: arkivPublic, walletClient: arkivWallet(generatePrivateKey()) }).get("denuncia", items[0]!.key);
     expect(row?.owner.toLowerCase()).toBe(newsroomAddress.toLowerCase());
     expect(row?.creator.toLowerCase()).toBe(privateKeyToAccount(relayerKey).address.toLowerCase());
 
-    // só hosts locais declarados foram contatados
+    // only declared local hosts were contacted
     expect(recorder.hosts().every((h) => h === "127.0.0.1")).toBe(true);
   });
 
-  it("o_segundo_envio_da_mesma_pessoa_e_recusado_e_outra_pessoa_e_aceita", async () => {
+  it("the_second_submission_from_the_same_person_is_rejected_and_another_person_is_accepted", async () => {
     const { app } = build();
     const post = (b: Uint8Array) => app.handle({ method: "POST", path: "/submissions", query: new URLSearchParams(), headers: {}, body: b });
     expect((await post(submission("bia", "primeira").body)).status).toBe(201);
@@ -112,7 +112,7 @@ describe("relayer ponta a ponta (ENS real no fork + Arkiv real local)", () => {
     expect((await post(submission("carlos", "outra pessoa").body)).status).toBe(201);
   });
 
-  it("envio_com_chave_desatualizada_e_recusado_sem_gastar_a_prova", async () => {
+  it("submission_with_stale_key_is_rejected_without_spending_the_proof", async () => {
     const { app } = build();
     const epoch = currentEpoch(() => new Date());
     const { envelope } = seal({ newsroom: name, pubkeyVersion: 7, category: "saude", recipients: [{ id: "redacao", publicKey: keys.publicKey }], plaintext: new Uint8Array([1]) });
@@ -122,8 +122,8 @@ describe("relayer ponta a ponta (ENS real no fork + Arkiv real local)", () => {
     expect(json(r).error).toMatchObject({ code: "stale_key_version", currentVersion: 1 });
   });
 
-  it("o_job_de_renovacao_roda_contra_o_arkiv_real", async () => {
+  it("the_renewal_job_runs_against_real_arkiv", async () => {
     const { renewal } = build();
-    expect(await renewal.run()).toEqual([{ newsroom: name, renewed: 0 }]); // nada vence em 60 dias (retenção de 150)
+    expect(await renewal.run()).toEqual([{ newsroom: name, renewed: 0 }]); // nothing expires within 60 days (retention of 150)
   });
 });

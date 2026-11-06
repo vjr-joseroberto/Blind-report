@@ -1,17 +1,17 @@
-# Instruções do projeto Safe Whistle
+# Safe Whistle project instructions
 
-## Guardrail: sem Tor nem redes de anonimato
-Este é um computador de trabalho onde Tor e redes semelhantes são **proibidos**.
+## Guardrail: no Tor or anonymity networks
+This is a work computer where Tor and similar networks are **forbidden**.
 
-- **Nunca** execute, instale, configure, escreva código para, nem proponha usar Tor, Nym, Nox, I2P, Lokinet, proxies SOCKS de anonimato, serviços ocultos ou o Anon-RPC. Vale para o app, testes, dependências e comandos.
-- O MVP usa um **RPC público** comum. O usuário final escolhe VPN ou Tor Browser por conta própria, fora do app.
-- A fase de demonstração com Tor está **BLOQUEADA** (`planejamento/99-fase-tor-BLOQUEADA.md`). Não a execute nem a desbloqueie por iniciativa própria.
-- Antes de qualquer tráfego de rede incomum, pergunte.
+- **Never** run, install, configure, write code for, or propose using Tor, Nym, Nox, I2P, Lokinet, anonymity SOCKS proxies, hidden services or Anon-RPC. It applies to the app, tests, dependencies and commands.
+- The MVP uses a common **public RPC**. The end user chooses a VPN or Tor Browser on their own, outside the app.
+- The demo phase with Tor is **BLOCKED** (`planning/99-tor-phase-BLOCKED.md`). Do not run it or unblock it on your own initiative.
+- Before any unusual network traffic, ask.
 
-O guardrail é imposto por `.claude/hooks/block-anon.mjs`, `guardrails/check.mjs` e, depois da Fase 1, pela política de rede em execução. Detalhes em `GUARDRAILS.md`. Não contorne o hook nem o verificador.
+The guardrail is enforced by `.claude/hooks/block-anon.mjs`, `guardrails/check.mjs` and, after Phase 1, by the runtime network policy. Details in `GUARDRAILS.md`. Do not bypass the hook or the checker.
 
-## Como desenvolver
-- **TDD sempre:** escreva o teste que falha primeiro, depois o código mínimo, depois refatore. Veja `planejamento/04-estrategia-tdd.md`.
-- Código simples de MVP: funções pequenas, sem frameworks pesados, sem abstrações antes de precisar.
-- Dados de teste fictícios; nenhuma fonte real.
-- Documentação em `docs/`; requisitos e plano em `planejamento/`.
+## How to develop
+- **Always TDD:** write the failing test first, then the minimal code, then refactor. See `planning/04-tdd-strategy.md`.
+- Simple MVP code: small functions, no heavy frameworks, no abstractions before they are needed.
+- Fictional test data; no real source.
+- Documentation in `docs/`; requirements and plan in `planning/`.

@@ -9,7 +9,7 @@ const CATEGORY_RE = /^[a-z0-9_-]{1,32}$/;
 const PAGE = 100;
 
 export type Submission = {
-  /** Chave da primeira parte (identifica a denúncia). */
+  /** Key of the first part (identifies the tip). */
   key: Hex;
   keys: Hex[];
   contentHash: string;
@@ -20,25 +20,25 @@ export type Submission = {
   status: Status;
   envelope: Uint8Array;
   createdAtBlock: bigint;
-  /** Menor expiração entre as partes. */
+  /** Earliest expiration among the parts. */
   expiresAtBlock: bigint;
 };
 
 export type Reply = { key: Hex; newsroom: string; sealed: Uint8Array; createdAtBlock: bigint; creator: Address; authorName?: string };
 
-/** Anotação registrada no Arkiv. `creator` é definido pela cadeia; `authorName` é só uma declaração. */
+/** Annotation recorded in Arkiv. `creator` is defined by the chain; `authorName` is only a claim. */
 export type Annotation = { key: Hex; denunciaKey: Hex; status: Status; creator: Address; authorName?: string; createdAtBlock: bigint };
 
-/** Quem diz ter escrito uma anotação ou resposta. */
+/** Whoever claims to have written an annotation or reply. */
 export type Author = { creator: Address; authorName?: string };
-/** Decide se o autor é reconhecido pela redação (administrador ou jornalista ativo). */
+/** Decides whether the author is recognized by the newsroom (administrator or active journalist). */
 export type Authorize = (author: Author) => boolean | Promise<boolean>;
 
 const NAME_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
-/** Coluna vazia (entidade sem autor declarado) conta como ausente. */
+/** Empty column (entity without a declared author) counts as absent. */
 const authorNameOf = (row: EntityRow): string | undefined => (row.attrs.authorName === undefined || row.attrs.authorName === "" ? undefined : String(row.attrs.authorName));
 
-/** Consulta a autorização uma vez por par (criador, nome) dentro de uma operação. */
+/** Queries authorization once per (creator, name) pair within an operation. */
 function memoize(authorize: Authorize): Authorize {
   const cache = new Map<string, Promise<boolean>>();
   return (a) => {
@@ -61,15 +61,15 @@ export type PublishInput = {
 
 const bad = (message: string) => new StoreError("input", message);
 const checkRetention = (seconds: number) => {
-  if (!Number.isInteger(seconds) || seconds < 1) throw bad("A retenção deve ser de ao menos 1 segundo.");
-  if (seconds > STORE_MAX_RETENTION_SECONDS) throw bad(`A retenção máxima é de ${STORE_MAX_RETENTION_SECONDS} segundos (limite de vida da cadeia).`);
+  if (!Number.isInteger(seconds) || seconds < 1) throw bad("Retention must be at least 1 second.");
+  if (seconds > STORE_MAX_RETENTION_SECONDS) throw bad(`Maximum retention is ${STORE_MAX_RETENTION_SECONDS} seconds (chain lifetime limit).`);
 };
 const checkAuthorName = (name: string) => {
-  if (name.length > 253 || !NAME_RE.test(name)) throw bad("Nome do autor inválido (use o nome ENS completo, em minúsculas).");
+  if (name.length > 253 || !NAME_RE.test(name)) throw bad("Invalid author name (use the full ENS name, in lowercase).");
 };
 const asNumber = (v: unknown): number => Number(v as bigint);
 const asHash = (name: string, v: string) => {
-  if (!HASH_RE.test(v)) throw bad(`${name} deve ser um hash 0x + 64 hexadecimais minúsculos.`);
+  if (!HASH_RE.test(v)) throw bad(`${name} must be a 0x hash + 64 lowercase hex characters.`);
 };
 
 export function createStore(backend: Backend) {
@@ -102,7 +102,7 @@ export function createStore(backend: Backend) {
     return { map: new Map([...latest].map(([k, v]) => [k, v.status])), ignored };
   }
 
-  /** Reúne as partes por hash do conteúdo; grupos incompletos são contados e omitidos. */
+  /** Gathers parts by content hash; incomplete groups are counted and omitted. */
   async function allSubmissions(newsroom: string, category?: string, authorize?: Authorize): Promise<{ items: Submission[]; skippedIncomplete: number; ignoredAnnotations: number }> {
     const rows = await selectAll("denuncia", category ? { newsroom, category } : { newsroom });
     const groups = new Map<string, EntityRow[]>();
@@ -139,16 +139,16 @@ export function createStore(backend: Backend) {
   const nowBlock = async () => backend.timing();
 
   const store = {
-    /** O relayer publica a denúncia (dividida em partes se for grande) e entrega a custódia à redação. */
+    /** The relayer publishes the tip (split into parts if large) and hands custody to the newsroom. */
     async publishSubmission(input: PublishInput): Promise<{ key: Hex; keys: Hex[] }> {
-      if (!isNewsroomName(input.newsroom)) throw bad("Nome de redação inválido.");
-      if (!CATEGORY_RE.test(input.category)) throw bad("Categoria inválida.");
+      if (!isNewsroomName(input.newsroom)) throw bad("Invalid newsroom name.");
+      if (!CATEGORY_RE.test(input.category)) throw bad("Invalid category.");
       asHash("contentHash", input.contentHash);
-      if (!isEpoch(input.epoch)) throw bad("Época inválida.");
-      if (!Number.isInteger(input.pubkeyVersion) || input.pubkeyVersion < 1) throw bad("Versão da chave inválida.");
-      if (input.envelope.length === 0) throw bad("O envelope não pode ser vazio.");
+      if (!isEpoch(input.epoch)) throw bad("Invalid epoch.");
+      if (!Number.isInteger(input.pubkeyVersion) || input.pubkeyVersion < 1) throw bad("Invalid key version.");
+      if (input.envelope.length === 0) throw bad("The envelope cannot be empty.");
       checkRetention(input.retentionSeconds);
-      if (!isAddress(input.custodian, { strict: false })) throw bad("Endereço do custodiante inválido.");
+      if (!isAddress(input.custodian, { strict: false })) throw bad("Invalid custodian address.");
 
       const parts = input.envelope.length <= PART_PAYLOAD_BYTES ? splitIntoParts(input.envelope, input.envelope.length) : splitIntoParts(input.envelope);
       const keys: Hex[] = [];
@@ -165,25 +165,25 @@ export function createStore(backend: Backend) {
       return { key: keys[0]!, keys };
     },
 
-    /** Com `authorize`, só anotações de autores reconhecidos contam para o status; as demais são ignoradas e contadas. */
+    /** With `authorize`, only annotations from recognized authors count toward status; the rest are ignored and counted. */
     async listSubmissions(q: { newsroom: string; status?: Status; category?: string; limit?: number; offset?: number; authorize?: Authorize }): Promise<{ items: Submission[]; hasMore: boolean; skippedIncomplete: number; ignoredAnnotations: number }> {
-      if (!isNewsroomName(q.newsroom)) throw bad("Nome de redação inválido.");
+      if (!isNewsroomName(q.newsroom)) throw bad("Invalid newsroom name.");
       const limit = q.limit ?? 50;
       const offset = q.offset ?? 0;
-      if (!Number.isInteger(limit) || limit < 1 || limit > PAGE) throw bad(`O limite deve estar entre 1 e ${PAGE}.`);
-      if (!Number.isInteger(offset) || offset < 0) throw bad("O deslocamento deve ser inteiro e não negativo.");
-      if (q.category !== undefined && !CATEGORY_RE.test(q.category)) throw bad("Categoria inválida.");
+      if (!Number.isInteger(limit) || limit < 1 || limit > PAGE) throw bad(`The limit must be between 1 and ${PAGE}.`);
+      if (!Number.isInteger(offset) || offset < 0) throw bad("The offset must be an integer and non-negative.");
+      if (q.category !== undefined && !CATEGORY_RE.test(q.category)) throw bad("Invalid category.");
       const { items, skippedIncomplete, ignoredAnnotations } = await allSubmissions(q.newsroom, q.category, q.authorize);
       const filtered = q.status ? items.filter((i) => i.status === q.status) : items;
       return { items: filtered.slice(offset, offset + limit), hasMore: filtered.length > offset + limit, skippedIncomplete, ignoredAnnotations };
     },
 
     async annotate(a: { newsroom: string; denunciaKey: Hex; status: Status; journalist: Address; authorName?: string; retentionSeconds?: number }): Promise<Hex> {
-      if (!isNewsroomName(a.newsroom)) throw bad("Nome de redação inválido.");
-      if (!(STATUSES as readonly string[]).includes(a.status)) throw bad(`Status desconhecido: ${String(a.status)}`);
+      if (!isNewsroomName(a.newsroom)) throw bad("Invalid newsroom name.");
+      if (!(STATUSES as readonly string[]).includes(a.status)) throw bad(`Unknown status: ${String(a.status)}`);
       asHash("denunciaKey", a.denunciaKey.toLowerCase());
       if (a.retentionSeconds !== undefined) checkRetention(a.retentionSeconds);
-      if (!isAddress(a.journalist, { strict: false })) throw bad("Endereço do jornalista inválido.");
+      if (!isAddress(a.journalist, { strict: false })) throw bad("Invalid journalist address.");
       if (a.authorName !== undefined) checkAuthorName(a.authorName);
       const { key } = await backend.create(
         "anotacao",
@@ -194,9 +194,9 @@ export function createStore(backend: Backend) {
       return key;
     },
 
-    /** Anotações registradas, com o criador real de cada uma. Filtra por denúncia se informada. */
+    /** Recorded annotations, with each one's real creator. Filters by tip if provided. */
     async listAnnotations(q: { newsroom: string; denunciaKey?: Hex }): Promise<Annotation[]> {
-      if (!isNewsroomName(q.newsroom)) throw bad("Nome de redação inválido.");
+      if (!isNewsroomName(q.newsroom)) throw bad("Invalid newsroom name.");
       if (q.denunciaKey !== undefined) asHash("denunciaKey", q.denunciaKey.toLowerCase());
       const rows = await selectAll("anotacao", q.denunciaKey ? { newsroom: q.newsroom, denunciaKey: q.denunciaKey.toLowerCase() } : { newsroom: q.newsroom });
       return rows.map((r) => ({ key: r.key, denunciaKey: String(r.attrs.denunciaKey) as Hex, status: r.attrs.status as Status, creator: r.creator, authorName: authorNameOf(r), createdAtBlock: r.createdAtBlock }));
@@ -213,10 +213,10 @@ export function createStore(backend: Backend) {
     },
 
     async publishReply(r: { newsroom: string; mailboxId: string; sealed: Uint8Array; retentionSeconds: number; authorName?: string }): Promise<Hex> {
-      if (!isNewsroomName(r.newsroom)) throw bad("Nome de redação inválido.");
+      if (!isNewsroomName(r.newsroom)) throw bad("Invalid newsroom name.");
       asHash("mailboxId", r.mailboxId);
-      if (r.sealed.length === 0) throw bad("A resposta não pode ser vazia.");
-      if (r.sealed.length > ARKIV_PRACTICAL_ENTITY_BYTES) throw new StoreError("too_large", "A resposta excede o tamanho de uma entidade.");
+      if (r.sealed.length === 0) throw bad("The reply cannot be empty.");
+      if (r.sealed.length > ARKIV_PRACTICAL_ENTITY_BYTES) throw new StoreError("too_large", "The reply exceeds the size of one entity.");
       checkRetention(r.retentionSeconds);
       if (r.authorName !== undefined) checkAuthorName(r.authorName);
       const { key } = await backend.create("resposta", { newsroom: r.newsroom, mailboxId: r.mailboxId, ...(r.authorName !== undefined ? { authorName: r.authorName } : {}) }, r.sealed, { expirationSeconds: r.retentionSeconds, readonly: true, permissionlessExtension: true });
@@ -232,11 +232,11 @@ export function createStore(backend: Backend) {
         .map(({ row }) => ({ key: row.key, newsroom: String(row.attrs.newsroom), sealed: row.data, createdAtBlock: row.createdAtBlock, creator: row.creator, authorName: authorNameOf(row) }));
     },
 
-    /** Estende a expiração para `retentionSeconds` a contar de agora, se isso for MAIS que a atual. */
+    /** Extends expiration to `retentionSeconds` from now, if that is MORE than the current one. */
     async renew(a: { key: Hex; retentionSeconds: number; kind?: EntityKind }): Promise<"extended" | "unchanged"> {
       checkRetention(a.retentionSeconds);
       const row = await backend.get(a.kind ?? "denuncia", a.key);
-      if (!row) throw new StoreError("not_found", "Entidade inexistente ou já expirada.");
+      if (!row) throw new StoreError("not_found", "Entity does not exist or has already expired.");
       const { currentBlock, blockSeconds } = await nowBlock();
       const candidate = currentBlock + BigInt(Math.ceil(a.retentionSeconds / blockSeconds));
       if (candidate <= row.expiresAtBlock) return "unchanged";
@@ -245,13 +245,13 @@ export function createStore(backend: Backend) {
     },
 
     async listExpiring(q: { newsroom: string; withinSeconds: number }): Promise<Submission[]> {
-      if (!isNewsroomName(q.newsroom)) throw bad("Nome de redação inválido.");
+      if (!isNewsroomName(q.newsroom)) throw bad("Invalid newsroom name.");
       const { currentBlock, blockSeconds } = await nowBlock();
       const { items } = await allSubmissions(q.newsroom);
       return items.filter((i) => Number(i.expiresAtBlock - currentBlock) * blockSeconds <= q.withinSeconds);
     },
 
-    /** Renova todas as denúncias que vencem em até `withinSeconds`. Devolve quantas denúncias foram renovadas. */
+    /** Renews all tips expiring within `withinSeconds`. Returns how many tips were renewed. */
     async renewExpiring(q: { newsroom: string; withinSeconds: number; retentionSeconds: number }): Promise<number> {
       const soon = await store.listExpiring(q);
       let renewed = 0;

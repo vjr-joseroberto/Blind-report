@@ -18,18 +18,18 @@ export type EntityRow = {
 export type CreateOptions = { expirationSeconds: number; readonly: boolean; permissionlessExtension: boolean };
 
 /**
- * O que a loja precisa do Arkiv. Implementações: `createSdkBackend` (nó real) e `createMemoryChain` (dublê).
- * As duas passam pela mesma suíte de contrato (test/backend-contract.ts).
+ * What the store needs from Arkiv. Implementations: `createSdkBackend` (real node) and `createMemoryChain` (double).
+ * Both go through the same contract suite (test/backend-contract.ts).
  */
 export interface Backend {
-  /** Conta que assina as escritas. */
+  /** Account that signs writes. */
   readonly account: Address;
   create(kind: EntityKind, attrs: Attrs, data: Uint8Array, options: CreateOptions): Promise<{ key: Hex }>;
   changeOwnership(key: Hex, newOwner: Address): Promise<void>;
-  /** Estende a expiração para `seconds` a contar de agora. */
+  /** Extends expiration to `seconds` from now. */
   extend(key: Hex, seconds: number): Promise<void>;
   get(kind: EntityKind, key: Hex): Promise<EntityRow | null>;
-  /** Exige ao menos um filtro (restrição do Arkiv). Página máxima: 100. */
+  /** Requires at least one filter (Arkiv restriction). Maximum page: 100. */
   select(kind: EntityKind, filter: Attrs, page: { offset: number; limit: number }): Promise<EntityRow[]>;
   timing(): Promise<{ currentBlock: bigint; blockSeconds: number }>;
 }

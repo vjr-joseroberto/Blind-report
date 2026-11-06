@@ -15,13 +15,13 @@ import type { Logger } from "./types.ts";
 
 export type ComposeOverrides = { verifier?: Verifier; fetch?: typeof fetch; now?: () => Date; logger?: Logger; sleep?: (ms: number) => Promise<void> };
 
-/** Logger de linhas JSON em stdout: só rota, status e código. Nunca IP, cabeçalhos, corpo ou prova. */
+/** JSON-lines logger to stdout: only route, status and code. Never IP, headers, body or proof. */
 export const stdoutLogger: Logger = {
   info: (e) => process.stdout.write(JSON.stringify({ level: "info", ...e }) + "\n"),
   error: (e) => process.stdout.write(JSON.stringify({ level: "error", ...e }) + "\n"),
 };
 
-/** Liga os pacotes reais. Todo acesso de rede passa pela política de hosts (`guardedFetch`). */
+/** Wires the real packages. All network access goes through the host policy (`guardedFetch`). */
 export function composeRelayer(config: Config, overrides: ComposeOverrides = {}) {
   const logger = overrides.logger ?? stdoutLogger;
   const guarded = guardedFetch(config.networkPolicy, overrides.fetch ?? globalThis.fetch);

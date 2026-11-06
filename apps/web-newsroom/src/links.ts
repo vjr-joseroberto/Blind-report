@@ -6,7 +6,7 @@ const ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
 
 const base = (spec: Pick<ChainSpec, "blockExplorerUrls">) => spec.blockExplorerUrls[0]?.replace(/\/+$/, "");
 
-/** Link da transação no explorador da rede (para conferir na blockchain). */
+/** Transaction link in the network explorer (to check on the blockchain). */
 export function txLink(spec: Pick<ChainSpec, "blockExplorerUrls">, hash: string): string | undefined {
   const b = base(spec);
   return b && HASH_RE.test(hash) ? `${b}/tx/${hash}` : undefined;
@@ -20,21 +20,21 @@ export function addressLink(spec: Pick<ChainSpec, "blockExplorerUrls">, address:
 export type StepFacts = { keysLoaded: boolean; backupDone: boolean; inboxLoaded: boolean; teamAdded?: boolean; readerKeyMade?: boolean };
 export type Step = { id: string; label: string; done: boolean };
 
-/** Guia de primeiros passos por papel, com o que já foi feito marcado. */
+/** First-steps guide by role, with what has already been done marked. */
 export function firstSteps(role: Role, f: StepFacts): Step[] {
   if (role === "admin") {
     return [
-      { id: "wallet", label: "Carteira conectada", done: true },
-      { id: "keys", label: "Carregar as chaves (cadastrar a redação ou importar o backup)", done: f.keysLoaded },
-      { id: "backup", label: "Gerar e guardar o backup das chaves", done: f.backupDone },
-      //{ id: "team", label: "Cadastrar os jornalistas e entregar o chaveiro", done: f.teamAdded ?? false },
+      { id: "wallet", label: "Wallet connected", done: true },
+      { id: "keys", label: "Load the keys (register the newsroom or import the backup)", done: f.keysLoaded },
+      { id: "backup", label: "Generate and store the keys backup", done: f.backupDone },
+      //{ id: "team", label: "Register the journalists and deliver the keyring", done: f.teamAdded ?? false },
     ];
   }
   if (role === "journalist") {
     return [
-      { id: "wallet", label: "Carteira conectada", done: true },
-      { id: "reader_key", label: "Gerar a sua chave de leitura e enviar a pública ao administrador", done: f.readerKeyMade ?? f.keysLoaded },
-      { id: "keyring", label: "Importar o chaveiro recebido do administrador", done: f.keysLoaded },
+      { id: "wallet", label: "Wallet connected", done: true },
+      { id: "reader_key", label: "Generate your reader key and send the public one to the administrator", done: f.readerKeyMade ?? f.keysLoaded },
+      { id: "keyring", label: "Import the keyring received from the administrator", done: f.keysLoaded },
     ];
   }
   return [];

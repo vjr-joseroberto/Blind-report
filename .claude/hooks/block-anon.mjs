@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Hook PreToolUse do Claude Code: nega comandos Bash e escritas (Write/Edit) que usem Tor/Nym ou redes de anonimato.
+// Claude Code PreToolUse hook: denies Bash commands and writes (Write/Edit) that use Tor/Nym or anonymity networks.
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,8 +20,8 @@ else if (tool === "Write" || tool === "Edit") {
 }
 
 if (hits.length) {
-  const reason = `GUARDRAIL: este projeto não usa Tor, Nym nem redes de anonimato semelhantes (detectado: ${[...new Set(hits)].join(", ")}). ` +
-    "Não execute nem escreva isso. O usuário final escolhe VPN/Tor por conta própria, fora do app. Veja GUARDRAILS.md.";
+  const reason = `GUARDRAIL: this project does not use Tor, Nym or similar anonymity networks (detected: ${[...new Set(hits)].join(", ")}). ` +
+    "Do not run or write this. The end user chooses VPN/Tor on their own, outside the app. See GUARDRAILS.md.";
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } }));
 }
 process.exit(0);

@@ -13,40 +13,40 @@ function make(now = NOW, ttl?: number) {
   return { login, advance: (s: number) => (t = new Date(t.getTime() + s * 1000)) };
 }
 
-describe("mensagem de entrada (sem gás, sem transação)", () => {
-  it("tem_site_endereco_numero_e_validade_sem_depender_da_redacao", () => {
+describe("sign-in message (no gas, no transaction)", () => {
+  it("has_site_address_number_and_validity_without_depending_on_the_newsroom", () => {
     const c = make().login.challenge(base);
     for (const part of ["127.0.0.1:5174", account.address, c.nonce, "2026-11-10T12:00:00.000Z", "2026-11-10T12:05:00.000Z"]) expect(c.message).toContain(part);
-    expect(c.message).toMatch(/não custa gás/i);
+    expect(c.message).toMatch(/costs no gas/i);
   });
 
-  it("cada_pedido_tem_numero_novo", () => {
+  it("each_request_has_a_new_number", () => {
     const { login } = make();
     expect(login.challenge(base).nonce).not.toBe(login.challenge(base).nonce);
   });
 });
 
-describe("verificação da assinatura", () => {
-  it("assinatura_valida_confere_o_endereco", async () => {
+describe("signature verification", () => {
+  it("valid_signature_matches_the_address", async () => {
     const { login } = make();
     const c = login.challenge(base);
     expect(await login.verify(c.nonce, await account.signMessage({ message: c.message }))).toEqual({ ok: true });
   });
 
-  it("assinatura_de_outro_endereco_e_recusada", async () => {
+  it("signature_from_another_address_is_refused", async () => {
     const { login } = make();
     const c = login.challenge(base);
     expect(await login.verify(c.nonce, await other.signMessage({ message: c.message }))).toEqual({ ok: false, reason: "bad_signature" });
   });
 
-  it("assinatura_de_outra_mensagem_ou_lixo_e_recusada", async () => {
+  it("signature_of_another_message_or_junk_is_refused", async () => {
     const { login } = make();
     const c = login.challenge(base);
     expect((await login.verify(c.nonce, await account.signMessage({ message: "outra coisa" }))).ok).toBe(false);
     expect(await login.verify(c.nonce, "0x1234")).toEqual({ ok: false, reason: "bad_signature" });
   });
 
-  it("mensagem_expirada_e_recusada", async () => {
+  it("expired_message_is_refused", async () => {
     const { login, advance } = make();
     const c = login.challenge(base);
     const sig = await account.signMessage({ message: c.message });
@@ -54,7 +54,7 @@ describe("verificação da assinatura", () => {
     expect(await login.verify(c.nonce, sig)).toEqual({ ok: false, reason: "expired" });
   });
 
-  it("numero_reutilizado_e_recusado_depois_do_primeiro_uso_valido", async () => {
+  it("reused_number_is_refused_after_the_first_valid_use", async () => {
     const { login } = make();
     const c = login.challenge(base);
     const sig = await account.signMessage({ message: c.message });
@@ -62,11 +62,11 @@ describe("verificação da assinatura", () => {
     expect(await login.verify(c.nonce, sig)).toEqual({ ok: false, reason: "reused" });
   });
 
-  it("numero_desconhecido_e_recusado", async () => {
+  it("unknown_number_is_refused", async () => {
     expect(await make().login.verify("0xabc", "0x00")).toEqual({ ok: false, reason: "unknown" });
   });
 
-  it("tentativa_com_assinatura_errada_nao_gasta_o_numero", async () => {
+  it("attempt_with_wrong_signature_does_not_spend_the_number", async () => {
     const { login } = make();
     const c = login.challenge(base);
     await login.verify(c.nonce, await other.signMessage({ message: c.message }));

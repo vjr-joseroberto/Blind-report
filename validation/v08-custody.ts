@@ -1,4 +1,4 @@
-// V-08 — Redação como custodiante: o que acontece depois do changeOwnership? (nó Arkiv local)
+// V-08 — Newsroom as custodian: what happens after changeOwnership? (local Arkiv node)
 import { createPublicClient, createWalletClient, ExpirationTime } from "@arkiv-network/sdk";
 import { localhost } from "@arkiv-network/sdk/chains";
 import { addr, bytes, defineSchema, str, u64 } from "@arkiv-network/sdk/schema";
@@ -6,7 +6,7 @@ import { http, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 const RPC = process.env.ARKIV_LOCAL_RPC ?? "http://127.0.0.1:8546";
-const FUNDER = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as Hex; // conta pré-financiada do nó dev
+const FUNDER = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as Hex; // pre-funded dev node account
 void addr;
 
 const Denuncia = defineSchema("sw-validation.denuncia", {
@@ -33,40 +33,40 @@ const values = (tag: string) => ({ newsroom: `v08-${RUN}-${tag}.jornal.eth`, sta
 const attempt = async (fn: () => Promise<unknown>) => {
   try {
     await fn();
-    return "PERMITIDO";
+    return "ALLOWED";
   } catch (e) {
-    return "RECUSADO (" + String((e as { shortMessage?: string }).shortMessage ?? (e as Error).message).split("\n")[0]!.slice(0, 80) + ")";
+    return "REJECTED (" + String((e as { shortMessage?: string }).shortMessage ?? (e as Error).message).split("\n")[0]!.slice(0, 80) + ")";
   }
 };
 
 const rows: [string, string][] = [];
 
-// Caso A: readonly, sem extensão livre
+// Case A: readonly, no free extension
 const a = await relayer.createEntity(Denuncia, values("a"), { expiration: ExpirationTime.fromDays(1), flags: { readonly: true } });
-rows.push(["A1: o relayer (criador) estende ANTES de transferir", await attempt(() => relayer.extendEntity({ entityKey: a.entityKey, expiration: ExpirationTime.fromDays(2) }))]);
+rows.push(["A1: the relayer (creator) extends BEFORE transferring", await attempt(() => relayer.extendEntity({ entityKey: a.entityKey, expiration: ExpirationTime.fromDays(2) }))]);
 await relayer.changeOwnership({ entityKey: a.entityKey, newOwner: newsroom.account!.address });
-rows.push(["A2: o relayer apaga DEPOIS de transferir", await attempt(() => relayer.deleteEntity({ entityKey: a.entityKey }))]);
-rows.push(["A3: o relayer estende DEPOIS de transferir", await attempt(() => relayer.extendEntity({ entityKey: a.entityKey, expiration: ExpirationTime.fromDays(3) }))]);
-rows.push(["A4: um terceiro estende", await attempt(() => stranger.extendEntity({ entityKey: a.entityKey, expiration: ExpirationTime.fromDays(3) }))]);
-rows.push(["A5: a redação (nova dona) estende", await attempt(() => newsroom.extendEntity({ entityKey: a.entityKey, expiration: ExpirationTime.fromDays(4) }))]);
-rows.push(["A6: a redação altera o conteúdo (readonly)", await attempt(() => newsroom.patchEntity(Denuncia, a.entityKey, { set: { status: "review" } }))]);
-rows.push(["A7: a redação devolve a propriedade a outra conta", await attempt(() => newsroom.changeOwnership({ entityKey: a.entityKey, newOwner: stranger.account!.address }))]);
+rows.push(["A2: the relayer deletes AFTER transferring", await attempt(() => relayer.deleteEntity({ entityKey: a.entityKey }))]);
+rows.push(["A3: the relayer extends AFTER transferring", await attempt(() => relayer.extendEntity({ entityKey: a.entityKey, expiration: ExpirationTime.fromDays(3) }))]);
+rows.push(["A4: a third party extends", await attempt(() => stranger.extendEntity({ entityKey: a.entityKey, expiration: ExpirationTime.fromDays(3) }))]);
+rows.push(["A5: the newsroom (new owner) extends", await attempt(() => newsroom.extendEntity({ entityKey: a.entityKey, expiration: ExpirationTime.fromDays(4) }))]);
+rows.push(["A6: the newsroom changes the content (readonly)", await attempt(() => newsroom.patchEntity(Denuncia, a.entityKey, { set: { status: "review" } }))]);
+rows.push(["A7: the newsroom hands ownership to another account", await attempt(() => newsroom.changeOwnership({ entityKey: a.entityKey, newOwner: stranger.account!.address }))]);
 
-// Caso B: readonly + permissionlessExtension (qualquer conta pode estender; ótimo para o job de retenção)
+// Case B: readonly + permissionlessExtension (any account can extend; great for the retention job)
 const b = await relayer.createEntity(Denuncia, values("b"), { expiration: ExpirationTime.fromDays(1), flags: { readonly: true, permissionlessExtension: true } });
 await relayer.changeOwnership({ entityKey: b.entityKey, newOwner: newsroom.account!.address });
-rows.push(["B1: o relayer (não dono) estende com permissionlessExtension", await attempt(() => relayer.extendEntity({ entityKey: b.entityKey, expiration: ExpirationTime.fromDays(5) }))]);
-rows.push(["B2: o relayer apaga (não dono)", await attempt(() => relayer.deleteEntity({ entityKey: b.entityKey }))]);
-rows.push(["B3: um terceiro estende", await attempt(() => stranger.extendEntity({ entityKey: b.entityKey, expiration: ExpirationTime.fromDays(6) }))]);
-rows.push(["B4: a redação apaga", await attempt(() => newsroom.deleteEntity({ entityKey: b.entityKey }))]);
+rows.push(["B1: the relayer (non-owner) extends with permissionlessExtension", await attempt(() => relayer.extendEntity({ entityKey: b.entityKey, expiration: ExpirationTime.fromDays(5) }))]);
+rows.push(["B2: the relayer deletes (non-owner)", await attempt(() => relayer.deleteEntity({ entityKey: b.entityKey }))]);
+rows.push(["B3: a third party extends", await attempt(() => stranger.extendEntity({ entityKey: b.entityKey, expiration: ExpirationTime.fromDays(6) }))]);
+rows.push(["B4: the newsroom deletes", await attempt(() => newsroom.deleteEntity({ entityKey: b.entityKey }))]);
 
-// Caso C: consulta — quem aparece como dono e criador depois da transferência?
+// Case C: query — who appears as owner and creator after the transfer?
 const c = await relayer.createEntity(Denuncia, values("c"), { expiration: ExpirationTime.fromDays(1), flags: { readonly: true } });
 await relayer.changeOwnership({ entityKey: c.entityKey, newOwner: newsroom.account!.address });
 const after = await pub.select({ $key: true, $owner: true, $creator: true }).from(Denuncia).ownedBy(newsroom.account!.address).fetch();
 const first = after.entities.find((e) => (e as { $key?: string }).$key === c.entityKey) as { $owner?: string; $creator?: string } | undefined;
-rows.push(["C1: $owner depois da transferência é a redação", String(first?.$owner).toLowerCase() === newsroom.account!.address.toLowerCase() ? "SIM" : `NÃO (${first?.$owner})`]);
-rows.push(["C2: $creator continua sendo o relayer", String(first?.$creator).toLowerCase() === relayer.account!.address.toLowerCase() ? "SIM" : `NÃO (${first?.$creator})`]);
+rows.push(["C1: $owner after the transfer is the newsroom", String(first?.$owner).toLowerCase() === newsroom.account!.address.toLowerCase() ? "YES" : `NO (${first?.$owner})`]);
+rows.push(["C2: $creator is still the relayer", String(first?.$creator).toLowerCase() === relayer.account!.address.toLowerCase() ? "YES" : `NO (${first?.$creator})`]);
 
-console.log("| Verificação | Resultado |\n|---|---|");
+console.log("| Check | Result |\n|---|---|");
 for (const [k, v] of rows) console.log(`| ${k} | ${v} |`);

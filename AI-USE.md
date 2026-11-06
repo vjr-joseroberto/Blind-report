@@ -1,26 +1,26 @@
-# Declaração de uso de IA
+# AI use statement
 
-Este projeto foi desenvolvido **com assistência de inteligência artificial**.
+This project was developed **with the assistance of artificial intelligence**.
 
-## Ferramenta
-**Claude Code** (Anthropic), um assistente de programação que roda no terminal, com modelos da família Claude. Os commits feitos com o assistente trazem a linha `Co-Authored-By: Claude …` no histórico.
+## Tool
+**Claude Code** (Anthropic), a coding assistant that runs in the terminal, with models from the Claude family. Commits made with the assistant include the line `Co-Authored-By: Claude …` in the history.
 
-## Para que a IA foi usada
-- Escrever **código** e **testes** (desenvolvimento orientado a testes), em TypeScript.
-- Escrever e atualizar a **documentação** (`docs/`, `planejamento/`, `arkiv/`) e os documentos de apresentação.
-- **Investigar** comportamentos das tecnologias (limites do Arkiv, ENSv2, World ID) por scripts de validação, com os resultados registrados em `validation/RESULTADOS.md`.
-- **Revisar** o próprio código em busca de falhas de segurança e privacidade (`docs/08-revisao-de-seguranca.md`).
+## What the AI was used for
+- Writing **code** and **tests** (test-driven development), in TypeScript.
+- Writing and updating the **documentation** (`docs/`, `planning/`, `arkiv/`) and the presentation documents.
+- **Investigating** the behavior of the technologies (Arkiv, ENSv2, World ID limits) through validation scripts, with the results recorded in `validation/RESULTS.md`.
+- **Reviewing** its own code for security and privacy flaws (`docs/08-security-review.md`).
 
-## O que é da pessoa responsável pelo projeto
-- A **ideia**, as **decisões** de produto e de segurança (por exemplo, a regra de não usar rede de anonimato) e a escolha das trilhas.
-- As **credenciais e carteiras de teste**: ficam só no `.env` local, nunca foram colocadas em conversas com a IA nem em arquivos versionados.
-- Os **testes manuais** que dependem de pessoas e de aparelhos reais (prova do World ID no simulador, painel com a carteira no navegador).
-- A decisão do que é publicado e submetido.
+## What belongs to the person responsible for the project
+- The **idea**, the product and security **decisions** (for example, the rule of not using an anonymity network) and the choice of tracks.
+- The **test credentials and wallets**: they live only in the local `.env`, were never placed in conversations with the AI or in versioned files.
+- The **manual tests** that depend on real people and devices (World ID proof in the simulator, dashboard with the wallet in the browser).
+- The decision of what is published and submitted.
 
-## O que a IA não fez
-- Não usou nem instalou rede de anonimato (regra imposta por `GUARDRAILS.md`, pelo verificador `guardrails/check.mjs` e por um hook do assistente).
-- Não teve acesso às chaves privadas.
+## What the AI did not do
+- It did not use or install an anonymity network (rule enforced by `GUARDRAILS.md`, by the `guardrails/check.mjs` checker and by an assistant hook).
+- It did not have access to the private keys.
 
-## Limites desta declaração
-- A **revisão linha a linha** de todo o código por uma pessoa **não está registrada** neste repositório. Parte da verificação vem dos testes automáticos (unitários, de integração e de ponta a ponta) e dos testes manuais citados acima.
-- Esta declaração foi escrita com o próprio assistente a partir do histórico do projeto; a pessoa responsável deve revisá-la antes de submeter.
+## Limits of this statement
+- A **line-by-line review** of all the code by a person **is not recorded** in this repository. Part of the verification comes from the automated tests (unit, integration and end-to-end) and the manual tests mentioned above.
+- This statement was written with the assistant itself based on the project history; the responsible person must review it before submitting.

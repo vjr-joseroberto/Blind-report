@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "license": "MIT",
-  "description": "Safe Whistle \u2014 canal de den\u00fancia an\u00f4nima para jornalismo (ENSv2 + Arkiv + World ID).",
+  "description": "Safe Whistle \u2014 anonymous tip channel for journalism (ENSv2 + Arkiv + World ID).",
   "type": "module",
   "workspaces": [
     "packages/*",

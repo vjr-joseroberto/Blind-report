@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe os nós locais, roda os testes de ponta a ponta e derruba os nós ao final (mesmo se falhar).
+# Starts the local nodes, runs the end-to-end tests and tears down the nodes at the end (even on failure).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 bash tests/fixtures/nodes-up.sh

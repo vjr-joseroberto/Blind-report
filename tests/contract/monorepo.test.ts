@@ -21,7 +21,7 @@ function workspacePackages(root: string): { dir: string; pkg: Pkg }[] {
   return out;
 }
 
-/** Nomes de dependências (de todos os package.json) que o guardrail reconhece como rede de anonimato. */
+/** Dependency names (from all package.json files) that the guardrail recognizes as an anonymity network. */
 function forbiddenDependencies(root: string): string[] {
   const files = [join(root, "package.json"), ...workspacePackages(root).map((p) => join(root, p.dir, "package.json"))];
   const hits: string[] = [];
@@ -33,15 +33,15 @@ function forbiddenDependencies(root: string): string[] {
   return hits;
 }
 
-describe("RNF-05 guardrail de dependências", () => {
-  it("nenhum_package_json_do_monorepo_tem_pacote_de_rede_de_anonimato", () => {
+describe("RNF-05 dependency guardrail", () => {
+  it("no_monorepo_package_json_has_anonymity_network_package", () => {
     expect(forbiddenDependencies(ROOT)).toEqual([]);
   });
 
-  it("detecta_um_pacote_proibido_quando_ele_aparece", () => {
+  it("detects_a_forbidden_package_when_it_appears", () => {
     const dir = mkdtempSync(join(tmpdir(), "sw-"));
     mkdirSync(join(dir, "packages/x"), { recursive: true });
-    // O nome é montado em partes para o próprio teste não disparar o guardrail do repositório.
+    // The name is assembled in parts so the test itself does not trigger the repository guardrail.
     const forbidden = "to" + "r-js";
     writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "r" }));
     writeFileSync(join(dir, "packages/x/package.json"), JSON.stringify({ name: "x", dependencies: { [forbidden]: "1.0.0" } }));
@@ -49,8 +49,8 @@ describe("RNF-05 guardrail de dependências", () => {
   });
 });
 
-describe("regras de dependência entre pacotes", () => {
-  // Quem pode depender de quem (docs/03-componentes.md §3). Nenhuma seta volta.
+describe("dependency rules between packages", () => {
+  // Who can depend on whom (docs/03-components.md §3). No arrow points back.
   const allowed: Record<string, string[]> = {
     "@safe-whistle/core": [],
     "@safe-whistle/crypto": ["@safe-whistle/core"],
@@ -61,29 +61,29 @@ describe("regras de dependência entre pacotes", () => {
     "@safe-whistle/source-client": ["@safe-whistle/core", "@safe-whistle/crypto", "@safe-whistle/ens-client", "@safe-whistle/network-policy"],
     "@safe-whistle/newsroom-client": ["@safe-whistle/core", "@safe-whistle/crypto", "@safe-whistle/ens-client", "@safe-whistle/arkiv-store", "@safe-whistle/network-policy"],
     "@safe-whistle/relayer": ["@safe-whistle/core", "@safe-whistle/crypto", "@safe-whistle/ens-client", "@safe-whistle/arkiv-store", "@safe-whistle/worldid-gate", "@safe-whistle/network-policy"],
-    // A tela é a raiz de composição: liga ENS e Arkiv reais ao cliente; a lógica fica no source-client.
+    // The screen is the composition root: it wires real ENS and Arkiv to the client; the logic lives in source-client.
     "@safe-whistle/web-source": ["@safe-whistle/source-client", "@safe-whistle/core", "@safe-whistle/ens-client", "@safe-whistle/arkiv-store", "@safe-whistle/network-policy"],
     "@safe-whistle/web-newsroom": ["@safe-whistle/newsroom-client", "@safe-whistle/core", "@safe-whistle/ens-client", "@safe-whistle/arkiv-store", "@safe-whistle/network-policy"],
   };
 
-  it("cada_pacote_so_depende_do_que_a_regra_permite", () => {
+  it("each_package_only_depends_on_what_the_rule_allows", () => {
     for (const { dir, pkg } of workspacePackages(ROOT)) {
       const name = pkg.name ?? dir;
       const internal = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).filter((d) => d.startsWith("@safe-whistle/"));
-      expect(allowed[name], `pacote sem regra: ${name}`).toBeDefined();
-      for (const dep of internal) expect(allowed[name], `${name} não pode depender de ${dep}`).toContain(dep);
+      expect(allowed[name], `package without rule: ${name}`).toBeDefined();
+      for (const dep of internal) expect(allowed[name], `${name} cannot depend on ${dep}`).toContain(dep);
     }
   });
 
-  it("core_e_crypto_nao_dependem_de_pacotes_de_rede", () => {
+  it("core_and_crypto_do_not_depend_on_network_packages", () => {
     for (const name of ["@safe-whistle/core", "@safe-whistle/crypto"]) {
       expect(allowed[name]).not.toContain("@safe-whistle/network-policy");
     }
   });
 });
 
-describe("script ci", () => {
-  it("executa_as_etapas_na_ordem_e_comeca_pelo_guardrail", () => {
+describe("ci script", () => {
+  it("runs_the_steps_in_order_and_starts_with_the_guardrail", () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { scripts: Record<string, string> };
     const steps = pkg.scripts.ci!.split("&&").map((s) => s.trim());
     expect(steps[0]).toBe("npm run guardrails");
@@ -92,7 +92,7 @@ describe("script ci", () => {
     expect(idx("npm run typecheck")).toBeLessThan(idx("npm run test:coverage"));
   });
 
-  it("os_scripts_nao_usam_navegador_automatizado", () => {
+  it("the_scripts_do_not_use_an_automated_browser", () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { scripts: Record<string, string>; devDependencies: Record<string, string> };
     const all = JSON.stringify(pkg).toLowerCase();
     for (const banned of ["playwright", "puppeteer", "selenium"]) expect(all).not.toContain(banned);

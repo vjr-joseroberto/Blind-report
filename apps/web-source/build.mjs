@@ -1,4 +1,4 @@
-// Gera dist/ a partir de src/: empacota o JavaScript, copia os arquivos estáticos e escreve a CSP a partir da política de rede.
+// Builds dist/ from src/: bundles the JavaScript, copies the static files and writes the CSP from the network policy.
 import { build } from "esbuild";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -23,5 +23,5 @@ export async function buildWeb({ outDir = join(here, "dist"), config } = {}) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const r = await buildWeb();
-  console.log(`web-source gerado em ${r.outDir}`);
+  console.log(`web-source generated at ${r.outDir}`);
 }

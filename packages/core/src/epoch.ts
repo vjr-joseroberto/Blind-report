@@ -1,10 +1,10 @@
-/** Época mensal em UTC no formato AAAAMM (ex.: 202611). */
+/** Monthly epoch in UTC in YYYYMM format (e.g. 202611). */
 export function epochOf(date: Date): number {
-  if (Number.isNaN(date.getTime())) throw new RangeError("Data inválida.");
+  if (Number.isNaN(date.getTime())) throw new RangeError("Invalid date.");
   return date.getUTCFullYear() * 100 + (date.getUTCMonth() + 1);
 }
 
-/** Época corrente, com o relógio injetado. */
+/** Current epoch, with the clock injected. */
 export function currentEpoch(now: () => Date): number {
   return epochOf(now());
 }

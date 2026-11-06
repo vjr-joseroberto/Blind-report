@@ -32,8 +32,8 @@ function make(over: Record<string, any> = {}, role: "admin" | "journalist" | "vi
   return { c: createPanelController(client as never, { role }), client };
 }
 
-describe("cadastro e chaves", () => {
-  it("mostra_o_andamento_do_cadastro_e_termina_com_a_redacao_e_a_versao", async () => {
+describe("registration and keys", () => {
+  it("shows_the_registration_progress_and_ends_with_the_newsroom_and_the_version", async () => {
     const { c } = make();
     const seen: string[] = [];
     c.subscribe((s) => s.progress && seen.push(s.progress.step));
@@ -42,34 +42,34 @@ describe("cadastro e chaves", () => {
     expect(c.state).toMatchObject({ busy: false, newsroom: { name: "investiga.eth" }, keyVersion: 1, progress: undefined });
   });
 
-  it("repassa_a_politica_ao_cliente", async () => {
+  it("passes_the_policy_to_the_client", async () => {
     const { c, client } = make();
     await c.register({ label: "investiga", categories: ["saude", "corrupcao"], maxBytes: 50_000, attachments: true });
     expect(client.registerNewsroom).toHaveBeenCalledWith(expect.objectContaining({ label: "investiga", policy: { categories: ["saude", "corrupcao"], maxBytes: 50_000, attachments: true, epoch: "monthly" } }));
   });
 
-  it("erro_do_cliente_aparece_com_a_causa", async () => {
-    const { c } = make({ registerNewsroom: vi.fn(async () => { throw new NewsroomError("invalid_input", "A política precisa de ao menos uma categoria."); }) });
+  it("client_error_appears_with_the_cause", async () => {
+    const { c } = make({ registerNewsroom: vi.fn(async () => { throw new NewsroomError("invalid_input", "The policy needs at least one category."); }) });
     await c.register({ label: "x", categories: [], maxBytes: 1, attachments: false });
-    expect(c.state.error).toEqual({ code: "invalid_input", message: "A política precisa de ao menos uma categoria." });
+    expect(c.state.error).toEqual({ code: "invalid_input", message: "The policy needs at least one category." });
     expect(c.state.busy).toBe(false);
   });
 
-  it("erro_inesperado_vira_mensagem_generica_sem_detalhes", async () => {
-    const { c } = make({ rotateKey: vi.fn(async () => { throw new Error("rpc 10.0.0.1 caiu"); }) });
+  it("unexpected_error_becomes_a_generic_message_without_details", async () => {
+    const { c } = make({ rotateKey: vi.fn(async () => { throw new Error("rpc 10.0.0.1 went down"); }) });
     await c.rotate();
     expect(c.state.error?.message).not.toContain("10.0.0.1");
     expect(c.state.error?.code).toBe("unexpected");
   });
 
-  it("rotaciona_e_atualiza_a_versao", async () => {
+  it("rotates_and_updates_the_version", async () => {
     const { c } = make();
     await c.rotate();
     expect(c.state.keyVersion).toBe(2);
-    expect(c.state.notice).toMatch(/versão 2/);
+    expect(c.state.notice).toMatch(/version 2/);
   });
 
-  it("exporta_o_backup_e_importa_atualizando_a_redacao", async () => {
+  it("exports_the_backup_and_imports_updating_the_newsroom", async () => {
     const { c, client } = make();
     await c.exportBackup("senha-forte-123");
     expect(c.state.backupText).toBe("BLOB");
@@ -78,22 +78,22 @@ describe("cadastro e chaves", () => {
     expect(c.state).toMatchObject({ newsroom: { name: "investiga.eth" }, keyVersion: 1 });
   });
 
-  it("senha_errada_no_import_mostra_o_erro", async () => {
-    const { c } = make({ importBackup: vi.fn(async () => { throw new NewsroomError("wrong_password", "Senha incorreta ou backup adulterado."); }) });
+  it("wrong_password_on_import_shows_the_error", async () => {
+    const { c } = make({ importBackup: vi.fn(async () => { throw new NewsroomError("wrong_password", "Incorrect password or tampered backup."); }) });
     await c.importBackup("BLOB", "errada-errada");
     expect(c.state.error?.code).toBe("wrong_password");
   });
 });
 
-describe("caixa de entrada", () => {
-  it("carrega_a_lista_com_os_filtros", async () => {
+describe("inbox", () => {
+  it("loads_the_list_with_the_filters", async () => {
     const { c, client } = make();
     await c.loadInbox({ status: "new", category: "saude" });
     expect(client.listInbox).toHaveBeenCalledWith(expect.objectContaining({ status: "new", category: "saude" }));
     expect(c.state.inbox?.items).toHaveLength(1);
   });
 
-  it("abrir_decifra_localmente_e_mostra_o_status", async () => {
+  it("opening_decrypts_locally_and_shows_the_status", async () => {
     const { c } = make();
     await c.loadInbox({});
     await c.open("0x01");
@@ -101,21 +101,21 @@ describe("caixa de entrada", () => {
     expect(c.state.opened?.envelope).toEqual(new Uint8Array([1]));
   });
 
-  it("falta_de_chave_mostra_a_causa_e_nao_abre", async () => {
-    const { c } = make({ decrypt: vi.fn(async () => { throw new NewsroomError("missing_key", "Falta a chave da versão 1."); }) });
+  it("missing_key_shows_the_cause_and_does_not_open", async () => {
+    const { c } = make({ decrypt: vi.fn(async () => { throw new NewsroomError("missing_key", "The key for version 1 is missing."); }) });
     await c.loadInbox({});
     await c.open("0x01");
     expect(c.state.opened).toBeUndefined();
     expect(c.state.error?.code).toBe("missing_key");
   });
 
-  it("abrir_um_item_que_nao_esta_na_lista_e_ignorado", async () => {
+  it("opening_an_item_that_is_not_in_the_list_is_ignored", async () => {
     const { c, client } = make();
     await c.open("0xff");
     expect(client.decrypt).not.toHaveBeenCalled();
   });
 
-  it("mudar_o_status_registra_anotacao_e_atualiza_a_tela", async () => {
+  it("changing_the_status_records_a_note_and_updates_the_screen", async () => {
     const { c, client } = make();
     await c.loadInbox({});
     await c.open("0x01");
@@ -125,44 +125,44 @@ describe("caixa de entrada", () => {
     expect(c.state.opened?.status).toBe("review");
   });
 
-  it("responder_envia_ao_mailbox_e_avisa", async () => {
+  it("replying_sends_to_the_mailbox_and_notifies", async () => {
     const { c, client } = make();
     await c.loadInbox({});
     await c.reply("0x01", "Recebemos.");
     expect(client.reply).toHaveBeenCalledWith(ITEM, "Recebemos.");
-    expect(c.state.notice).toMatch(/resposta enviada/i);
+    expect(c.state.notice).toMatch(/reply sent/i);
   });
 });
 
-describe("chaves de leitura dos jornalistas", () => {
-  it("gera_o_par_em_base64url_para_o_jornalista_guardar", () => {
+describe("journalist reader keys", () => {
+  it("generates_the_pair_in_base64url_for_the_journalist_to_keep", () => {
     const { c } = make();
     expect(c.newReaderKey()).toEqual({ publicKey: "AQ", privateKey: "Ag" });
   });
 
-  it("compartilha_o_chaveiro_para_a_chave_publica_informada", async () => {
+  it("shares_the_keyring_for_the_given_public_key", async () => {
     const { c, client } = make();
     await c.shareKeyring("AQ");
     expect(client.shareKeyring).toHaveBeenCalledWith(new Uint8Array([1]));
     expect(c.state.sharedText).toBe("SHARED");
   });
 
-  it("importa_o_chaveiro_e_atualiza_a_redacao", async () => {
+  it("imports_the_keyring_and_updates_the_newsroom", async () => {
     const { c, client } = make();
     client.newsroom.mockReturnValue(ENS);
     await c.importShared("SHARED", { publicKey: "AQ", privateKey: "Ag" });
     expect(c.state).toMatchObject({ newsroom: { name: "investiga.eth" }, keyVersion: 1 });
   });
 
-  it("chaveiro_para_outra_chave_mostra_o_erro", async () => {
-    const { c } = make({ importSharedKeyring: vi.fn(() => { throw new NewsroomError("cannot_decrypt", "Este chaveiro não foi cifrado para a sua chave de leitura."); }) });
+  it("keyring_for_another_key_shows_the_error", async () => {
+    const { c } = make({ importSharedKeyring: vi.fn(() => { throw new NewsroomError("cannot_decrypt", "This keyring was not encrypted for your reader key."); }) });
     await c.importShared("SHARED", { publicKey: "AQ", privateKey: "Ag" });
     expect(c.state.error?.code).toBe("cannot_decrypt");
   });
 });
 
-describe("equipe e retenção", () => {
-  it("cadastra_jornalista", async () => {
+describe("team and retention", () => {
+  it("registers_journalist", async () => {
     const { c, client } = make();
     const pub = new Uint8Array(32).fill(3);
     await c.addJournalist({ label: "maria", address: "0xa63A63047e362EE0B8af09489DCA1dc172E507ca", readerPublicKey: pub });
@@ -170,26 +170,26 @@ describe("equipe e retenção", () => {
     expect(c.state.notice).toMatch(/maria/);
   });
 
-  it("revogar_avisa_para_girar_a_chave", async () => {
+  it("revoking_warns_to_rotate_the_key", async () => {
     const { c } = make();
     await c.revokeJournalist("maria");
-    expect(c.state.notice).toMatch(/gire a chave/i);
+    expect(c.state.notice).toMatch(/rotate the key/i);
   });
 
-  it("lista_o_que_vence_e_renova_tudo", async () => {
+  it("lists_what_expires_and_renews_everything", async () => {
     const { c, client } = make();
     await c.loadExpiring(30 * 24 * 3600);
     expect(c.state.expiring).toHaveLength(1);
     await c.renewAll(150 * 24 * 3600);
     expect(client.renew).toHaveBeenCalledWith("0x01", 150 * 24 * 3600);
-    expect(c.state.notice).toMatch(/1 denúncia/);
+    expect(c.state.notice).toMatch(/1 tip/);
   });
 });
 
-describe("papéis: a regra vale no código", () => {
+describe("roles: the rule holds in the code", () => {
   const forbidden = (c: ReturnType<typeof make>["c"]) => expect(c.state.error?.code).toBe("forbidden");
 
-  it("jornalista_nao_administra_a_redacao", async () => {
+  it("journalist_does_not_administer_the_newsroom", async () => {
     const { c, client } = make({}, "journalist");
     await c.rotate(); forbidden(c);
     await c.exportBackup("senha-forte-123"); forbidden(c);
@@ -202,7 +202,7 @@ describe("papéis: a regra vale no código", () => {
     for (const fn of [client.rotateKey, client.exportBackup, client.importBackup, client.addJournalist, client.revokeJournalist, client.shareKeyring, client.updatePolicy, client.registerNewsroom]) expect(fn).not.toHaveBeenCalled();
   });
 
-  it("jornalista_trabalha_a_caixa_de_entrada", async () => {
+  it("journalist_works_the_inbox", async () => {
     const { c, client } = make({}, "journalist");
     await c.loadInbox({});
     await c.open("0x01");
@@ -216,7 +216,7 @@ describe("papéis: a regra vale no código", () => {
     expect(c.state.error).toBeUndefined();
   });
 
-  it("visitante_so_pode_cadastrar_a_redacao", async () => {
+  it("visitor_can_only_register_the_newsroom", async () => {
     const { c, client } = make({}, "visitor");
     await c.loadInbox({}); forbidden(c);
     await c.open("0x01");
@@ -226,13 +226,13 @@ describe("papéis: a regra vale no código", () => {
     expect(client.registerNewsroom).toHaveBeenCalled();
   });
 
-  it("sem_papel_definido_nada_e_permitido", async () => {
+  it("with_no_defined_role_nothing_is_allowed", async () => {
     const c = createPanelController(make().client as never);
     await c.loadInbox({});
     forbidden(c);
   });
 
-  it("mudar_o_papel_vale_para_as_proximas_acoes", async () => {
+  it("changing_the_role_applies_to_the_next_actions", async () => {
     const { c } = make({}, "visitor");
     await c.loadInbox({});
     forbidden(c);
@@ -242,8 +242,8 @@ describe("papéis: a regra vale no código", () => {
   });
 });
 
-describe("andamento, transações e alertas", () => {
-  it("conta_as_transacoes_do_cadastro_e_guarda_os_links", async () => {
+describe("progress, transactions and alerts", () => {
+  it("counts_the_registration_transactions_and_keeps_the_links", async () => {
     const { c } = make();
     c.addTx({ hash: "0x" + "01".repeat(32) as `0x${string}`, chainId: "0xaa36a7" });
     c.addTx({ hash: "0x" + "02".repeat(32) as `0x${string}`, chainId: "0xaa36a7" });
@@ -251,20 +251,20 @@ describe("andamento, transações e alertas", () => {
     expect(c.state.txs.map((t) => t.hash.slice(2, 4))).toEqual(["01", "02"]);
   });
 
-  it("o_cadastro_zera_o_contador_no_inicio", async () => {
+  it("the_registration_resets_the_counter_at_the_start", async () => {
     const { c } = make();
     c.addTx({ hash: ("0x" + "01".repeat(32)) as `0x${string}`, chainId: "0xaa36a7" });
     await c.register({ label: "investiga", categories: ["saude"], maxBytes: 1000, attachments: false });
     expect(c.state.txCount).toBe(0);
   });
 
-  it("informa_anotacoes_ignoradas_na_caixa_de_entrada", async () => {
+  it("reports_ignored_notes_in_the_inbox", async () => {
     const { c } = make({ listInbox: vi.fn(async () => ({ items: [ITEM], hasMore: false, skippedIncomplete: 0, ignoredAnnotations: 3 })) });
     await c.loadInbox({});
     expect(c.state.ignoredAnnotations).toBe(3);
   });
 
-  it("marca_o_backup_como_feito_e_gira_a_chave_desfaz_isso", async () => {
+  it("marks_the_backup_as_done_and_rotating_the_key_undoes_that", async () => {
     const { c } = make();
     await c.exportBackup("senha-forte-123");
     expect(c.state.backupDone).toBe(true);
@@ -272,15 +272,15 @@ describe("andamento, transações e alertas", () => {
     expect(c.state.backupDone).toBe(false);
   });
 
-  it("publica_a_politica", async () => {
+  it("publishes_the_policy", async () => {
     const { c, client } = make();
     const p = { categories: ["saude"], maxBytes: 5000, attachments: true, epoch: "monthly" as const };
     await c.updatePolicy(p);
     expect(client.updatePolicy).toHaveBeenCalledWith(p);
-    expect(c.state.notice).toMatch(/política/i);
+    expect(c.state.notice).toMatch(/policy/i);
   });
 
-  it("registra_se_as_chaves_estao_carregadas_depois_de_importar", async () => {
+  it("records_whether_the_keys_are_loaded_after_importing", async () => {
     const { c, client } = make();
     client.newsroom.mockReturnValue(ENS);
     await c.importBackup("B", "senha-forte-123");
@@ -288,15 +288,15 @@ describe("andamento, transações e alertas", () => {
   });
 });
 
-describe("o backup não fica refém de outras operações lentas", () => {
-  it("carregar_a_caixa_de_entrada_nao_marca_o_painel_como_ocupado", async () => {
+describe("the backup does not depend on other slow operations", () => {
+  it("loading_the_inbox_does_not_mark_the_panel_as_busy", async () => {
     let release!: () => void;
     const slow = new Promise<void>((r) => (release = r));
     const { c } = make({ listInbox: vi.fn(async () => { await slow; return { items: [], hasMore: false, skippedIncomplete: 0, ignoredAnnotations: 0 }; }) });
     const pending = c.loadInbox({});
     expect(c.state.loading).toBe(true);
     expect(c.state.busy).toBe(false);
-    await c.exportBackup("senha-forte-123"); // enquanto a leitura lenta ainda corre
+    await c.exportBackup("senha-forte-123"); // while the slow read is still running
     expect(c.state.backupText).toBe("BLOB");
     expect(c.state.error).toBeUndefined();
     release();
@@ -304,16 +304,16 @@ describe("o backup não fica refém de outras operações lentas", () => {
     expect(c.state.loading).toBe(false);
   });
 
-  it("verificar_o_que_vence_tambem_nao_bloqueia_e_erros_aparecem", async () => {
+  it("checking_what_expires_also_does_not_block_and_errors_appear", async () => {
     const { c } = make({ listExpiring: vi.fn(async () => { throw new Error("rpc"); }) });
     await c.loadExpiring(1);
     expect(c.state.loading).toBe(false);
     expect(c.state.error?.code).toBe("unexpected");
   });
 
-  it("gerar_o_backup_avisa_o_que_fazer_a_seguir", async () => {
+  it("generating_the_backup_warns_what_to_do_next", async () => {
     const { c } = make();
     await c.exportBackup("senha-forte-123");
-    expect(c.state.notice).toMatch(/baixar/i);
+    expect(c.state.notice).toMatch(/download/i);
   });
 });

@@ -6,9 +6,9 @@ import userRegistry from "./abis/UserRegistry.json";
 import verifiableFactory from "./abis/VerifiableFactory.json";
 
 /**
- * Implantação do ENSv2 na Sepolia (redeploy de 2026-10-01, commit 07e55a0 do contracts-v2).
- * Fonte: https://docs.ens.domains/learn/deployments — o ENSv2 já foi redeployado várias vezes: reconfira antes de usar.
- * Único lugar do projeto com estes endereços.
+ * ENSv2 deployment on Sepolia (redeploy of 2026-10-01, commit 07e55a0 of contracts-v2).
+ * Source: https://docs.ens.domains/learn/deployments — ENSv2 has already been redeployed several times: double-check before using.
+ * The only place in the project with these addresses.
  */
 export const ENSV2_SEPOLIA = {
   universalResolver: "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe",
@@ -22,7 +22,7 @@ export const ENSV2_SEPOLIA = {
 
 export const ABIS = { ethRegistrar, ethRegistry, mockUSDC, permissionedResolver, userRegistry, verifiableFactory } as const;
 
-/** Roles (nybbles do EnhancedAccessControl; o "admin" de cada role fica 128 bits acima). */
+/** Roles (nybbles of EnhancedAccessControl; each role's "admin" is 128 bits above). */
 export const ROLES = {
   resolver: { setAddress: 1n << 0n, setText: 1n << 4n },
   registry: { registrar: 1n << 0n, unregister: 1n << 12n, renew: 1n << 16n, setResolver: 1n << 24n },

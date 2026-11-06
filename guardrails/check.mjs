@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Verificador do repositório: falha (exit 1) se algum código/configuração mencionar Tor, Nym ou redes de anonimato.
-// Uso: node guardrails/check.mjs [pasta ...]   (padrão: pasta pai deste arquivo)
+// Repository checker: fails (exit 1) if any code/configuration mentions Tor, Nym or anonymity networks.
+// Usage: node guardrails/check.mjs [folder ...]   (default: parent folder of this file)
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,9 +26,9 @@ function walk(dir) {
 for (const t of targets) walk(t);
 
 if (violations.length) {
-  console.error("GUARDRAIL VIOLADO: este projeto não usa Tor, Nym nem redes de anonimato semelhantes.\n");
+  console.error("GUARDRAIL VIOLATION: this project does not use Tor, Nym or similar anonymity networks.\n");
   for (const v of violations) console.error(`  ${v.file}: ${v.hits.join("; ")}`);
-  console.error("\nVeja GUARDRAILS.md. Remova o trecho: a fase com rede anônima está BLOQUEADA (planejamento/99-fase-tor-BLOQUEADA.md).");
+  console.error("\nSee GUARDRAILS.md. Remove the snippet: the anonymous-network phase is BLOCKED (planning/99-tor-phase-BLOCKED.md).");
   process.exit(1);
 }
-console.log("guardrails OK: nenhum uso de Tor/Nym/redes de anonimato em código ou configuração.");
+console.log("guardrails OK: no use of Tor/Nym/anonymity networks in code or configuration.");

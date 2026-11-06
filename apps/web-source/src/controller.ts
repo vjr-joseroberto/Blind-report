@@ -1,4 +1,4 @@
-// Lógica da tela da fonte, sem DOM: um estado e as ações que a tela liga aos botões.
+// Logic for the source screen, without DOM: a state and the actions the screen wires to the buttons.
 import type { Attachment } from "@safe-whistle/core";
 import { ProofError, SourceError, parseReceipt, serializeReceipt, type ProofProvider, type createSourceClient } from "@safe-whistle/source-client";
 
@@ -15,15 +15,15 @@ export type SourceState = {
   receiptText?: string;
   receiptSaved: boolean;
   replies?: { text: string; createdAtBlock: bigint; author: string }[];
-  /** Respostas descartadas por não terem sido escritas pela redação (autor não reconhecido). */
+  /** Replies discarded because they were not written by the newsroom (unrecognized author). */
   ignoredReplies?: number;
   verification?: Verification;
 };
 
 const toViewError = (e: unknown): ViewError =>
-  e instanceof SourceError ? { code: e.code, message: e.message } : { code: "unexpected", message: "Algo deu errado. Tente de novo." };
+  e instanceof SourceError ? { code: e.code, message: e.message } : { code: "unexpected", message: "Something went wrong. Try again." };
 
-/** Envolve um fornecedor de prova para que a tela possa cancelá-lo. */
+/** Wraps a proof provider so the screen can cancel it. */
 export function cancellable(inner: ProofProvider): { provider: ProofProvider; cancel: () => void } {
   let abort: (() => void) | undefined;
   return {
@@ -86,7 +86,7 @@ export function createSourceController(client: Client) {
       set({ receiptSaved: true });
     },
 
-    /** Só conclui depois de a pessoa confirmar que guardou o recibo. */
+    /** Only finishes after the person confirms they saved the receipt. */
     finish() {
       if (state.step !== "receipt" || !state.receiptSaved) return;
       set({ step: "newsroom", newsroom: undefined, receiptText: undefined, receiptSaved: false, error: undefined });

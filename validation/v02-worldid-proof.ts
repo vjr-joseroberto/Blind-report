@@ -1,10 +1,10 @@
-// V-02 — Prova REAL do World ID (ambiente staging, simulador). Exige uma ação sua: colar o link no simulador.
+// V-02 — REAL World ID proof (staging environment, simulator). Requires an action from you: paste the link into the simulator.
 //
-// Uso:  npx tsx validation/v02-worldid-proof.ts          (3 provas: A, B e A de novo)
-//       npx tsx validation/v02-worldid-proof.ts --dry    (só cria o pedido e mostra o link; não espera)
+// Usage:  npx tsx validation/v02-worldid-proof.ts          (3 proofs: A, B and A again)
+//         npx tsx validation/v02-worldid-proof.ts --dry    (only creates the request and shows the link; does not wait)
 //
-// Para cada prova o script imprime um link (connectorURI). Abra https://simulator.worldcoin.org/ e cole o link.
-// O script espera a confirmação, verifica na API do World e aplica o portão. Ao final compara os nullifiers.
+// For each proof the script prints a link (connectorURI). Open https://simulator.worldcoin.org/ and paste the link.
+// The script waits for confirmation, verifies it against the World API and applies the gate. At the end it compares the nullifiers.
 import { IDKit, proofOfHuman } from "@worldcoin/idkit-core";
 import { createPolicy, guardedFetch } from "@safe-whistle/network-policy";
 import { createFileNullifierStore, createRpContextSigner, createSubmissionGate, createWorldVerifier, usedKey, type IdKitPayload } from "@safe-whistle/worldid-gate";
@@ -36,12 +36,12 @@ async function getProof(label: string, newsroom: string): Promise<IdKitPayload |
     allow_legacy_proofs: false,
     environment: "staging",
   }).preset(proofOfHuman());
-  console.log(`\n[${label}] ação: ${action}\nLink para o simulador:\n${request.connectorURI}\n`);
+  console.log(`\n[${label}] action: ${action}\nLink for the simulator:\n${request.connectorURI}\n`);
   if (dry) return null;
-  console.log("Aguardando a confirmação no simulador (até 10 min)...");
+  console.log("Waiting for confirmation in the simulator (up to 10 min)...");
   const done = await request.pollUntilCompletion({ timeout: 10 * 60 * 1000 });
   if (!done.success) {
-    console.log(`[${label}] falhou: ${String(done.error)}`);
+    console.log(`[${label}] failed: ${String(done.error)}`);
     return null;
   }
   return done.result as unknown as IdKitPayload;
@@ -54,22 +54,22 @@ for (const [label, newsroom] of [["A1", A], ["B1", B], ["A2", A]] as const) {
   const proof = await getProof(label, newsroom);
   if (!proof) {
     if (dry) break;
-    out[label] = "sem prova";
+    out[label] = "no proof";
     continue;
   }
   const nullifier = String(proof.responses?.[0]?.nullifier);
   nullifiers[label] = nullifier;
   const r = await gate.admit({ newsroom, epoch: EPOCH, payload: proof });
-  out[label] = r.ok ? "ACEITO" : `RECUSADO (${r.code}): ${r.message}`;
-  console.log(`[${label}] portão: ${out[label]}  | identificador (hash curto): ${short(nullifier)}`);
+  out[label] = r.ok ? "ACCEPTED" : `REJECTED (${r.code}): ${r.message}`;
+  console.log(`[${label}] gate: ${out[label]}  | identifier (short hash): ${short(nullifier)}`);
 }
 
 if (!dry) {
   out.nullifierAIgualA2 = nullifiers.A1 !== undefined && nullifiers.A1 === nullifiers.A2;
   out.nullifierADiferenteDeB = nullifiers.A1 !== undefined && nullifiers.B1 !== undefined && nullifiers.A1 !== nullifiers.B1;
   out.chaveArmazenadaA1 = nullifiers.A1 ? usedKey(nullifiers.A1, `submit:${A}:${EPOCH}`).slice(0, 12) + "…" : null;
-  console.log("\nResumo:", JSON.stringify(out, null, 2));
-  console.log("\nEsperado: A1 ACEITO; B1 ACEITO; A2 RECUSADO (limit_reached); nullifier de A1 igual ao de A2; diferente do de B1.");
+  console.log("\nSummary:", JSON.stringify(out, null, 2));
+  console.log("\nExpected: A1 ACCEPTED; B1 ACCEPTED; A2 REJECTED (limit_reached); A1's nullifier equal to A2's; different from B1's.");
   writeFileSync(new URL("./out/v02.json", import.meta.url), JSON.stringify(out, null, 2));
 }
 process.exit(0);

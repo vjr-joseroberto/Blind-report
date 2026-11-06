@@ -19,14 +19,14 @@ const raw = (over: Record<string, unknown> = {}) => ({
 const codeOf = (fn: () => unknown) => {
   try {
     fn();
-    return "sem erro";
+    return "no error";
   } catch (e) {
-    return e instanceof RecordsError ? e.code : "outro erro";
+    return e instanceof RecordsError ? e.code : "other error";
   }
 };
 
-describe("RF-02 ler os registros da redação", () => {
-  it("interpreta_chave_versao_politica_relayers_e_custodiante", () => {
+describe("RF-02 read the newsroom records", () => {
+  it("interprets_key_version_policy_relayers_and_custodian", () => {
     const info = parseNewsroomRecords(raw());
     expect(info.name).toBe("investiga.jornal.eth");
     expect(info.publicKey).toEqual(KEY);
@@ -36,42 +36,42 @@ describe("RF-02 ler os registros da redação", () => {
     expect(info.custodian).toBe(custodian);
   });
 
-  it("relayer_e_opcional", () => {
+  it("relayer_is_optional", () => {
     expect(parseNewsroomRecords(raw({ relayer: null })).relayers).toEqual([]);
     expect(parseNewsroomRecords(raw({ relayer: "" })).relayers).toEqual([]);
   });
 
-  it("chave_ausente_gera_erro_claro", () => {
+  it("missing_key_raises_clear_error", () => {
     expect(codeOf(() => parseNewsroomRecords(raw({ pubkey: null })))).toBe("pubkey");
     expect(codeOf(() => parseNewsroomRecords(raw({ pubkey: "" })))).toBe("pubkey");
   });
 
-  it("chave_com_tamanho_ou_formato_errado_gera_erro", () => {
+  it("key_with_wrong_size_or_format_raises_error", () => {
     expect(codeOf(() => parseNewsroomRecords(raw({ pubkey: toBase64Url(new Uint8Array(16)) })))).toBe("pubkey");
     expect(codeOf(() => parseNewsroomRecords(raw({ pubkey: "isto não é base64url!" })))).toBe("pubkey");
   });
 
-  it("versao_invalida_gera_erro", () => {
+  it("invalid_version_raises_error", () => {
     for (const v of [null, "", "0", "-1", "1.5", "abc", "2 "]) expect(codeOf(() => parseNewsroomRecords(raw({ version: v }))), String(v)).toBe("version");
   });
 
-  it("politica_invalida_ou_ausente_gera_erro", () => {
+  it("invalid_or_missing_policy_raises_error", () => {
     expect(codeOf(() => parseNewsroomRecords(raw({ policy: null })))).toBe("policy");
     expect(codeOf(() => parseNewsroomRecords(raw({ policy: "{nao json" })))).toBe("policy");
     expect(codeOf(() => parseNewsroomRecords(raw({ policy: JSON.stringify({ categories: [] }) })))).toBe("policy");
   });
 
-  it("relayer_so_aceita_https", () => {
+  it("relayer_only_accepts_https", () => {
     expect(codeOf(() => parseNewsroomRecords(raw({ relayer: "http://inseguro.example.org" })))).toBe("relayer");
     expect(codeOf(() => parseNewsroomRecords(raw({ relayer: "nao e url" })))).toBe("relayer");
   });
 
-  it("custodiante_ausente_ou_zero_gera_erro", () => {
+  it("missing_or_zero_custodian_raises_error", () => {
     expect(codeOf(() => parseNewsroomRecords(raw({ custodian: null })))).toBe("custodian");
     expect(codeOf(() => parseNewsroomRecords(raw({ custodian: "0x0000000000000000000000000000000000000000" })))).toBe("custodian");
   });
 
-  it("a_mensagem_de_erro_diz_qual_registro_falhou", () => {
+  it("the_error_message_says_which_record_failed", () => {
     try {
       parseNewsroomRecords(raw({ pubkey: null }));
     } catch (e) {

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// V-05 — Análise estática: quais hosts o código do IDKit referencia?
-// Uso: node validation/v05-idkit-hosts.mjs <pasta com node_modules/@worldcoin>
-// Varre os arquivos publicados (.js/.mjs/.cjs/.json) e extrai URLs https/wss e domínios citados.
+// V-05 — Static analysis: which hosts does the IDKit code reference?
+// Usage: node validation/v05-idkit-hosts.mjs <folder with node_modules/@worldcoin>
+// Scans the published files (.js/.mjs/.cjs/.json) and extracts https/wss URLs and mentioned domains.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.argv[2];
 if (!root) {
-  console.error("Uso: node validation/v05-idkit-hosts.mjs <pasta com node_modules/@worldcoin>");
+  console.error("Usage: node validation/v05-idkit-hosts.mjs <folder with node_modules/@worldcoin>");
   process.exit(2);
 }
 
@@ -36,6 +36,6 @@ function walk(dir) {
 walk(root);
 
 const hosts = [...found.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-console.log(`| Host | Arquivos | Exemplo |\n|---|---|---|`);
+console.log(`| Host | Files | Example |\n|---|---|---|`);
 for (const [host, e] of hosts) console.log(`| ${host} | ${e.files.size} | ${[...e.samples][0]} |`);
-console.log(`\nTotal: ${hosts.length} hosts distintos.`);
+console.log(`\nTotal: ${hosts.length} distinct hosts.`);

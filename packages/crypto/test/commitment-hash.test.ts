@@ -9,39 +9,39 @@ const make = () => {
   return { ...out, plaintext };
 };
 
-describe("RF-16 hash público e RF-17 compromisso de autoria", () => {
-  it("o_hash_publico_confere", () => {
+describe("RF-16 public hash and RF-17 authorship commitment", () => {
+  it("the_public_hash_matches", () => {
     expect(verifyContentHash(make().envelope)).toBe(true);
   });
 
-  it("a_adulteracao_do_ciphertext_e_detectada_pelo_hash", () => {
+  it("ciphertext_tampering_is_detected_by_the_hash", () => {
     const { envelope } = make();
     const ciphertext = new Uint8Array(envelope.ciphertext);
     ciphertext[3] = ciphertext[3]! ^ 0x01;
     expect(verifyContentHash({ ...envelope, ciphertext })).toBe(false);
   });
 
-  it("o_recibo_repete_o_hash_do_envelope", () => {
+  it("the_receipt_repeats_the_envelope_hash", () => {
     const { envelope, receipt } = make();
     expect(receipt.contentHash).toBe(envelope.contentHash);
   });
 
-  it("o_compromisso_confere_com_texto_e_sal", () => {
+  it("the_commitment_matches_with_text_and_salt", () => {
     const { envelope, receipt, plaintext } = make();
     expect(verifyCommitment(envelope, plaintext, receipt.salt)).toBe(true);
   });
 
-  it("o_compromisso_falha_com_outro_texto", () => {
+  it("the_commitment_fails_with_another_text", () => {
     const { envelope, receipt } = make();
     expect(verifyCommitment(envelope, utf8("outro texto"), receipt.salt)).toBe(false);
   });
 
-  it("o_compromisso_falha_com_outro_sal", () => {
+  it("the_commitment_fails_with_another_salt", () => {
     const { envelope, plaintext } = make();
     expect(verifyCommitment(envelope, plaintext, new Uint8Array(32))).toBe(false);
   });
 
-  it("commitmentOf_e_deterministico_e_sensivel_ao_sal", () => {
+  it("commitmentOf_is_deterministic_and_salt_sensitive", () => {
     const t = utf8("x");
     const s1 = new Uint8Array(32).fill(1);
     const s2 = new Uint8Array(32).fill(2);
@@ -50,9 +50,9 @@ describe("RF-16 hash público e RF-17 compromisso de autoria", () => {
     expect(commitmentOf(t, s1)).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
-  it("o_sal_tem_32_bytes_e_o_compromisso_nao_revela_o_texto", () => {
+  it("the_salt_is_32_bytes_and_the_commitment_does_not_reveal_the_text", () => {
     const { receipt, envelope } = make();
     expect(receipt.salt).toHaveLength(32);
-    expect(envelope.commitment).not.toContain("74657874"); // "text" em hexadecimal
+    expect(envelope.commitment).not.toContain("74657874"); // "text" in hexadecimal
   });
 });

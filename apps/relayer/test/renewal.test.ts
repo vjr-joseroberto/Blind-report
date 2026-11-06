@@ -14,8 +14,8 @@ const base = (store: { renewExpiring: ReturnType<typeof vi.fn> }, over: Record<s
   return { job, sleep, logs };
 };
 
-describe("RF-18 job de renovação de retenção", () => {
-  it("renova_cada_redacao_com_os_parametros_configurados", async () => {
+describe("RF-18 retention renewal job", () => {
+  it("renews_each_newsroom_with_the_configured_parameters", async () => {
     const store = { renewExpiring: ok(3) };
     const { job } = base(store);
     const res = await job.run();
@@ -24,27 +24,27 @@ describe("RF-18 job de renovação de retenção", () => {
     expect(res).toEqual([{ newsroom: "a.eth", renewed: 3 }, { newsroom: "b.eth", renewed: 3 }]);
   });
 
-  it("repete_com_recuo_exponencial_quando_o_rpc_falha_e_depois_funciona", async () => {
+  it("retries_with_exponential_backoff_when_the_rpc_fails_and_then_succeeds", async () => {
     const renewExpiring = vi.fn().mockRejectedValueOnce(new Error("rpc 1")).mockRejectedValueOnce(new Error("rpc 2")).mockResolvedValue(1);
     const { job, sleep } = base({ renewExpiring }, { newsrooms: ["a.eth"], baseDelayMs: 1000 });
     expect(await job.run()).toEqual([{ newsroom: "a.eth", renewed: 1 }]);
     expect(sleep.mock.calls.map((c) => c[0])).toEqual([1000, 2000]);
   });
 
-  it("depois_de_esgotar_as_tentativas_registra_o_erro_e_segue_para_a_proxima_redacao", async () => {
+  it("after_exhausting_attempts_logs_the_error_and_moves_to_the_next_newsroom", async () => {
     const renewExpiring = vi.fn(async ({ newsroom }: { newsroom: string }) => {
-      if (newsroom === "a.eth") throw new Error("rpc fora do ar");
+      if (newsroom === "a.eth") throw new Error("rpc down");
       return 2;
     });
     const { job, sleep } = base({ renewExpiring }, { maxAttempts: 3, baseDelayMs: 10 });
     const res = await job.run();
-    expect(res[0]).toMatchObject({ newsroom: "a.eth", renewed: 0, error: "falha ao renovar" });
+    expect(res[0]).toMatchObject({ newsroom: "a.eth", renewed: 0, error: "failed to renew" });
     expect(res[1]).toEqual({ newsroom: "b.eth", renewed: 2 });
     expect(renewExpiring.mock.calls.filter((c) => (c[0] as { newsroom: string }).newsroom === "a.eth")).toHaveLength(3);
-    expect(sleep).toHaveBeenCalledTimes(2); // entre as 3 tentativas
+    expect(sleep).toHaveBeenCalledTimes(2); // between the 3 attempts
   });
 
-  it("o_log_traz_so_contagens_e_nunca_a_mensagem_de_erro_interna", async () => {
+  it("the_log_carries_only_counts_and_never_the_internal_error_message", async () => {
     const renewExpiring = vi.fn(async () => {
       throw new Error("senha=abc123 em 10.1.1.1");
     });
@@ -56,7 +56,7 @@ describe("RF-18 job de renovação de retenção", () => {
     expect(logs.length).toBeGreaterThan(0);
   });
 
-  it("sem_redacoes_configuradas_nao_faz_nada", async () => {
+  it("with_no_newsrooms_configured_does_nothing", async () => {
     const store = { renewExpiring: ok(1) };
     const { job } = base(store, { newsrooms: [] });
     expect(await job.run()).toEqual([]);

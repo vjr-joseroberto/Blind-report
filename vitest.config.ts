@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 
-// Todos os testes são scripts em Node (sem navegador). Integração, E2E e validação rodam por scripts próprios.
+// All tests are Node scripts (no browser). Integration, E2E and validation run through their own scripts.
 export default defineConfig({
   test: {
     environment: "node",
@@ -9,7 +9,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.ts"],
-      // admin.ts, sdk-backend.ts e compose.ts/main.ts (ligações reais) são cobertos pelos testes de integração, não pelos unitários.
+      // admin.ts, sdk-backend.ts and compose.ts/main.ts (real wiring) are covered by the integration tests, not the unit tests.
       exclude: ["**/index.ts", "packages/ens-client/src/admin.ts", "packages/arkiv-store/src/sdk-backend.ts", "apps/relayer/src/compose.ts", "apps/relayer/src/main.ts", "apps/web-source/src/main.ts", "apps/web-source/src/dom.ts", "apps/web-newsroom/src/main.ts", "apps/web-newsroom/src/dom.ts"],
       thresholds: {
         "packages/core/src/**": { lines: 90, functions: 90, branches: 85, statements: 90 },

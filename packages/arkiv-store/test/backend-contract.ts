@@ -1,15 +1,15 @@
-// Contrato do Backend: a MESMA suíte roda contra o backend em memória (unitário) e contra o nó Arkiv real (integração).
+// Backend contract: the SAME suite runs against the in-memory backend (unit) and against the real Arkiv node (integration).
 import { describe, expect, it } from "vitest";
 import { ARKIV_MAX_RETENTION_SECONDS, type Backend } from "../src/index.ts";
 
 export type World = {
-  /** Conta que cria as entidades (o relayer). */
+  /** Account that creates entities (the relayer). */
   relayer: Backend;
-  /** Conta que passa a ser dona depois da transferência (a redação). */
+  /** Account that becomes owner after the transfer (the newsroom). */
   newsroom: Backend;
-  /** Conta sem nenhum direito. */
+  /** Account with no rights. */
   stranger: Backend;
-  /** Faz o tempo andar `seconds` (memória: instantâneo; nó real: dorme). Opcional. */
+  /** Moves time forward by `seconds` (memory: instant; real node: sleeps). Optional. */
   advance?: (seconds: number) => Promise<void>;
 };
 
@@ -19,8 +19,8 @@ const flags = (over: { expirationSeconds?: number; readonly?: boolean; permissio
 const bytes = (n: number, v = 7) => new Uint8Array(n).fill(v);
 
 export function defineBackendContract(label: string, makeWorld: () => Promise<World>): void {
-  describe(`contrato do Backend: ${label}`, () => {
-    it("guarda_o_atributo_authorName_em_anotacao_e_resposta", async () => {
+  describe(`Backend contract: ${label}`, () => {
+    it("stores_the_authorName_attribute_in_annotation_and_reply", async () => {
       const w = await makeWorld();
       const newsroom = `${nid()}.eth`;
       await w.newsroom.create("anotacao", { newsroom, denunciaKey: rand32(), status: "review", byJournalist: w.newsroom.account.toLowerCase(), authorName: "maria.investiga.eth" }, bytes(1), flags());
@@ -29,7 +29,7 @@ export function defineBackendContract(label: string, makeWorld: () => Promise<Wo
       expect((await w.stranger.select("resposta", { newsroom }, { offset: 0, limit: 10 }))[0]!.attrs.authorName).toBe("maria.investiga.eth");
     });
 
-    it("cria_e_seleciona_por_filtro_com_dados_e_atributos_intactos", async () => {
+    it("creates_and_selects_by_filter_with_data_and_attributes_intact", async () => {
       const w = await makeWorld();
       const newsroom = `${nid()}.eth`;
       const { key } = await w.relayer.create("denuncia", { newsroom, category: "saude", status: "new", epoch: 202611n, contentHash: "0x" + "ab".repeat(32), pubkeyVersion: 1n, part: 0n, parts: 1n }, bytes(100, 9), flags());
@@ -44,18 +44,18 @@ export function defineBackendContract(label: string, makeWorld: () => Promise<Wo
       expect(r.owner.toLowerCase()).toBe(w.relayer.account.toLowerCase());
     });
 
-    it("outro_filtro_nao_devolve_nada", async () => {
+    it("another_filter_returns_nothing", async () => {
       const w = await makeWorld();
       await w.relayer.create("resposta", { newsroom: `${nid()}.eth`, mailboxId: rand32() }, bytes(10), flags());
       expect(await w.relayer.select("resposta", { mailboxId: rand32() }, { offset: 0, limit: 10 })).toEqual([]);
     });
 
-    it("selecao_sem_nenhum_filtro_e_recusada", async () => {
+    it("selection_without_any_filter_is_rejected", async () => {
       const w = await makeWorld();
       await expect(w.relayer.select("denuncia", {}, { offset: 0, limit: 10 })).rejects.toThrow();
     });
 
-    it("pagina_com_offset_e_limit_sem_repetir_nem_perder", async () => {
+    it("paginates_with_offset_and_limit_without_repeating_or_losing", async () => {
       const w = await makeWorld();
       const newsroom = `${nid()}.eth`;
       for (let i = 0; i < 5; i++) {
@@ -69,7 +69,7 @@ export function defineBackendContract(label: string, makeWorld: () => Promise<Wo
       expect(new Set(keys).size).toBe(5);
     });
 
-    it("so_o_dono_transfere_a_propriedade", async () => {
+    it("only_the_owner_transfers_ownership", async () => {
       const w = await makeWorld();
       const mailboxId = rand32();
       const { key } = await w.relayer.create("resposta", { newsroom: `${nid()}.eth`, mailboxId }, bytes(5), flags());
@@ -77,24 +77,24 @@ export function defineBackendContract(label: string, makeWorld: () => Promise<Wo
       await w.relayer.changeOwnership(key, w.newsroom.account);
       const [row] = await w.relayer.select("resposta", { mailboxId }, { offset: 0, limit: 1 });
       expect(row!.owner.toLowerCase()).toBe(w.newsroom.account.toLowerCase());
-      expect(row!.creator.toLowerCase()).toBe(w.relayer.account.toLowerCase()); // o criador não muda
-      await expect(w.relayer.changeOwnership(key, w.relayer.account)).rejects.toThrow(); // quem criou já não é dono
+      expect(row!.creator.toLowerCase()).toBe(w.relayer.account.toLowerCase()); // the creator does not change
+      await expect(w.relayer.changeOwnership(key, w.relayer.account)).rejects.toThrow(); // whoever created it is no longer the owner
     });
 
-    it("estender_exige_ser_dono_ou_a_entidade_aceitar_extensao_livre", async () => {
+    it("extending_requires_being_owner_or_the_entity_accepting_free_extension", async () => {
       const w = await makeWorld();
       const plain = await w.relayer.create("resposta", { newsroom: `${nid()}.eth`, mailboxId: rand32() }, bytes(5), flags());
       await w.relayer.changeOwnership(plain.key, w.newsroom.account);
-      await expect(w.relayer.extend(plain.key, 7200)).rejects.toThrow(); // não é dono e a extensão não é livre
-      await w.newsroom.extend(plain.key, 7200); // a dona estende
+      await expect(w.relayer.extend(plain.key, 7200)).rejects.toThrow(); // not the owner and the extension is not free
+      await w.newsroom.extend(plain.key, 7200); // the owner extends
 
       const free = await w.relayer.create("resposta", { newsroom: `${nid()}.eth`, mailboxId: rand32() }, bytes(5), flags({ permissionlessExtension: true }));
       await w.relayer.changeOwnership(free.key, w.newsroom.account);
-      await w.relayer.extend(free.key, 7200); // o relayer estende sem ser dono
-      await w.stranger.extend(free.key, 7200); // qualquer conta pode (só aumenta a retenção)
+      await w.relayer.extend(free.key, 7200); // the relayer extends without being the owner
+      await w.stranger.extend(free.key, 7200); // any account can (it only increases retention)
     });
 
-    it("get_devolve_a_entidade_pela_chave_ou_nulo", async () => {
+    it("get_returns_the_entity_by_key_or_null", async () => {
       const w = await makeWorld();
       const mailboxId = rand32();
       const { key } = await w.relayer.create("resposta", { newsroom: `${nid()}.eth`, mailboxId }, bytes(8, 3), flags());
@@ -105,7 +105,7 @@ export function defineBackendContract(label: string, makeWorld: () => Promise<Wo
       expect(await w.stranger.get("resposta", ("0x" + "00".repeat(32)) as `0x${string}`)).toBeNull();
     });
 
-    it("a_cadeia_recusa_vida_alem_do_maximo_ao_criar_e_ao_estender", async () => {
+    it("the_chain_rejects_lifetime_beyond_the_maximum_on_create_and_on_extend", async () => {
       const w = await makeWorld();
       const att = { newsroom: `${nid()}.eth`, mailboxId: rand32() };
       await expect(w.relayer.create("resposta", att, bytes(5), flags({ expirationSeconds: ARKIV_MAX_RETENTION_SECONDS + 10 }))).rejects.toThrow();
@@ -113,7 +113,7 @@ export function defineBackendContract(label: string, makeWorld: () => Promise<Wo
       await expect(w.relayer.extend(key, ARKIV_MAX_RETENTION_SECONDS + 10)).rejects.toThrow();
     });
 
-    it("o_tempo_atual_avanca", async () => {
+    it("current_time_advances", async () => {
       const w = await makeWorld();
       const a = await w.relayer.timing();
       await w.relayer.create("resposta", { newsroom: `${nid()}.eth`, mailboxId: rand32() }, bytes(5), flags());
@@ -122,7 +122,7 @@ export function defineBackendContract(label: string, makeWorld: () => Promise<Wo
       expect(b.blockSeconds).toBeGreaterThan(0);
     });
 
-    it("entidade_expirada_some_da_consulta", async () => {
+    it("expired_entity_disappears_from_the_query", async () => {
       const w = await makeWorld();
       if (!w.advance) return;
       const mailboxId = rand32();

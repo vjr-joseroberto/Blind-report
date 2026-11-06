@@ -1,5 +1,5 @@
-// V-06 — Limites e estabilidade de RPCs públicos comuns (tráfego comum, sem anonimato).
-// Usa a política de rede do projeto: só os hosts listados abaixo podem ser contatados.
+// V-06 — Limits and stability of common public RPCs (ordinary traffic, no anonymity).
+// Uses the project's network policy: only the hosts listed below can be contacted.
 import { createPolicy, guardedFetch } from "@safe-whistle/network-policy";
 
 const CANDIDATES: { name: string; url: string }[] = [
@@ -8,7 +8,7 @@ const CANDIDATES: { name: string; url: string }[] = [
   { name: "1rpc (Sepolia)", url: "https://1rpc.io/sepolia" },
   { name: "tenderly gateway (Sepolia)", url: "https://sepolia.gateway.tenderly.co" },
   { name: "rpc.sepolia.org", url: "https://rpc.sepolia.org" },
-  { name: "Arkiv Rabdi (público, sem chave)", url: "https://rpc.rabdi.db-chain.testnet.arkiv.network" },
+  { name: "Arkiv Rabdi (public, no key)", url: "https://rpc.rabdi.db-chain.testnet.arkiv.network" },
 ];
 
 const policy = createPolicy({ hosts: CANDIDATES.map((c) => new URL(c.url).hostname) });
@@ -32,7 +32,7 @@ async function call(url: string, method = "eth_blockNumber"): Promise<{ ok: bool
 
 const pct = (xs: number[], p: number) => [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(xs.length * p))] ?? NaN;
 
-console.log("| RPC | seq. 20: ok | p50 ms | p95 ms | rajada 40 paralelas: ok | erros (amostra) |");
+console.log("| RPC | seq. 20: ok | p50 ms | p95 ms | burst of 40 parallel: ok | errors (sample) |");
 console.log("|---|---|---|---|---|---|");
 for (const c of CANDIDATES) {
   const seq: Awaited<ReturnType<typeof call>>[] = [];

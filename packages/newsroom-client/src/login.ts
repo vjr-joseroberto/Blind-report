@@ -5,7 +5,7 @@ export type LoginResult = { ok: true } | { ok: false; reason: "expired" | "reuse
 
 const DEFAULT_TTL_SECONDS = 300;
 
-/** Entrada com a carteira: a pessoa assina um texto (sem gás, sem transação) que prova o controle do endereço. A redação é escolhida depois. */
+/** Sign-in with the wallet: the person signs a text (no gas, no transaction) that proves control of the address. The newsroom is chosen afterwards. */
 export function createLogin(opts: { now: () => Date; ttlSeconds?: number; random?: (n: number) => Uint8Array }) {
   const ttl = (opts.ttlSeconds ?? DEFAULT_TTL_SECONDS) * 1000;
   const random = opts.random ?? ((n) => globalThis.crypto.getRandomValues(new Uint8Array(n)));
@@ -18,15 +18,15 @@ export function createLogin(opts: { now: () => Date; ttlSeconds?: number; random
       const issuedAt = opts.now().getTime();
       const expiresAt = issuedAt + ttl;
       const message = [
-        "Safe Whistle — entrar no painel da redação",
+        "Safe Whistle — sign in to the newsroom dashboard",
         "",
         `Site: ${a.domain}`,
-        `Endereço: ${a.address}`,
-        `Número: ${nonce}`,
-        `Emitida em: ${new Date(issuedAt).toISOString()}`,
-        `Válida até: ${new Date(expiresAt).toISOString()}`,
+        `Address: ${a.address}`,
+        `Number: ${nonce}`,
+        `Issued at: ${new Date(issuedAt).toISOString()}`,
+        `Valid until: ${new Date(expiresAt).toISOString()}`,
         "",
-        "Esta assinatura não custa gás e não autoriza nenhuma transação.",
+        "This signature costs no gas and does not authorize any transaction.",
       ].join("\n");
       const c: Challenge = { message, nonce, address: a.address, domain: a.domain, issuedAt, expiresAt };
       pending.set(nonce, c);

@@ -1,4 +1,4 @@
-// V-07 — Desempenho da cifragem (Node, mesmo motor V8/WebAssembly dos navegadores baseados em Chromium).
+// V-07 — Encryption performance (Node, same V8/WebAssembly engine as Chromium-based browsers).
 import { newKeypair, seal, open, encodeEnvelope, decodeEnvelope } from "@safe-whistle/crypto";
 
 const redacao = newKeypair();
@@ -7,7 +7,7 @@ const sizes: [string, number][] = [["1 KiB", 1024], ["100 KiB", 100 * 1024], ["1
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
 const time = (fn: () => void, runs = 15) => {
-  fn(); // aquecimento
+  fn(); // warmup
   const t: number[] = [];
   for (let i = 0; i < runs; i++) {
     const s = performance.now();
@@ -27,8 +27,8 @@ for (const [label, n] of sizes) {
   const codecMs = time(() => decodeEnvelope(encodeEnvelope(envelope)));
   rows.push(`| ${label} | ${sealMs.toFixed(2)} | ${openMs.toFixed(2)} | ${codecMs.toFixed(2)} | ${bytes.length} |`);
 }
-console.log("| Tamanho | cifrar (ms) | abrir (ms) | codificar+decodificar (ms) | bytes do envelope |");
+console.log("| Size | encrypt (ms) | open (ms) | encode+decode (ms) | envelope bytes |");
 console.log("|---|---|---|---|---|");
 console.log(rows.join("\n"));
 const m100 = Number(rows[1]!.split("|")[2]);
-console.log(`\nMeta RNF-08 (cifrar 100 KiB < 100 ms): ${m100 < 100 ? "ATENDIDA" : "NÃO ATENDIDA"} (${m100.toFixed(2)} ms)`);
+console.log(`\nRNF-08 target (encrypt 100 KiB < 100 ms): ${m100 < 100 ? "MET" : "NOT MET"} (${m100.toFixed(2)} ms)`);

@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 
-// Ponta a ponta, por script e sem navegador: exige os nós locais (npm run test:e2e os sobe e derruba).
+// End to end, by script and without a browser: requires the local nodes (npm run test:e2e brings them up and down).
 export default defineConfig({
   test: {
     environment: "node",

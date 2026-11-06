@@ -24,46 +24,46 @@ const publish = (over: Partial<Parameters<ReturnType<typeof relayerStore>["publi
 const codeOf = async (p: Promise<unknown>) => {
   try {
     await p;
-    return "sem erro";
+    return "no error";
   } catch (e) {
-    return e instanceof StoreError ? e.code : `outro: ${(e as Error).message}`;
+    return e instanceof StoreError ? e.code : `other: ${(e as Error).message}`;
   }
 };
 
-describe("RF-10 e RF-11 publicar a denúncia e transferir a custódia", () => {
-  it("cria_entidade_com_atributos_indexados_e_o_envelope_em_bytes", async () => {
+describe("RF-10 and RF-11 publish the tip and transfer custody", () => {
+  it("creates_entity_with_indexed_attributes_and_the_envelope_in_bytes", async () => {
     await publish();
     const [row] = await chain.backendFor(RELAYER).select("denuncia", { newsroom: NAME }, { offset: 0, limit: 5 });
     expect(row!.attrs).toEqual({ newsroom: NAME, category: "corrupcao", status: "new", epoch: 202611n, contentHash: HASH("ab"), pubkeyVersion: 2n, part: 0n, parts: 1n });
     expect(row!.data).toEqual(envelope(500));
   });
 
-  it("os_atributos_nunca_identificam_a_fonte", async () => {
+  it("the_attributes_never_identify_the_source", async () => {
     await publish();
     const [row] = await chain.backendFor(RELAYER).select("denuncia", { newsroom: NAME }, { offset: 0, limit: 5 });
     const allowed = new Set(["newsroom", "category", "status", "epoch", "contentHash", "pubkeyVersion", "part", "parts"]);
     expect(Object.keys(row!.attrs).every((k) => allowed.has(k))).toBe(true);
   });
 
-  it("marca_readonly_e_permissionlessExtension", async () => {
+  it("marks_readonly_and_permissionlessExtension", async () => {
     await publish();
     expect(chain.flagsOf(0)).toEqual({ readonly: true, permissionlessExtension: true });
   });
 
-  it("transfere_a_custodia_para_a_redacao_e_o_criador_continua_sendo_o_relayer", async () => {
+  it("transfers_custody_to_the_newsroom_and_the_creator_remains_the_relayer", async () => {
     await publish();
     const [row] = await chain.backendFor(RELAYER).select("denuncia", { newsroom: NAME }, { offset: 0, limit: 5 });
     expect(row!.owner).toBe(NEWSROOM);
     expect(row!.creator).toBe(RELAYER);
   });
 
-  it("depois_da_transferencia_o_relayer_nao_transfere_de_novo_mas_ainda_estende", async () => {
+  it("after_the_transfer_the_relayer_cannot_transfer_again_but_still_extends", async () => {
     const { key } = await publish();
     await expect(chain.backendFor(RELAYER).changeOwnership(key, RELAYER)).rejects.toThrow();
-    await relayerStore().renew({ key, retentionSeconds: 7200 }); // extensão livre
+    await relayerStore().renew({ key, retentionSeconds: 7200 }); // free extension
   });
 
-  it("recusa_entradas_invalidas_com_codigo", async () => {
+  it("rejects_invalid_inputs_with_code", async () => {
     expect(await codeOf(publish({ newsroom: "Invalida" }))).toBe("input");
     expect(await codeOf(publish({ category: "Com Espaço" }))).toBe("input");
     expect(await codeOf(publish({ contentHash: "0x123" }))).toBe("input");
@@ -75,8 +75,8 @@ describe("RF-10 e RF-11 publicar a denúncia e transferir a custódia", () => {
   });
 });
 
-describe("RF-19 anexos grandes em várias partes", () => {
-  it("divide_em_partes_e_lista_como_uma_so_denuncia_remontada", async () => {
+describe("RF-19 large attachments in several parts", () => {
+  it("splits_into_parts_and_lists_as_a_single_reassembled_tip", async () => {
     const big = Uint8Array.from({ length: 300 * 1024 }, (_, i) => i % 251);
     await publish({ envelope: big });
     const rows = await chain.backendFor(RELAYER).select("denuncia", { newsroom: NAME }, { offset: 0, limit: 20 });
@@ -87,13 +87,13 @@ describe("RF-19 anexos grandes em várias partes", () => {
     expect(items[0]!.parts).toBe(3);
   });
 
-  it("todas_as_partes_ficam_com_a_redacao", async () => {
+  it("all_parts_belong_to_the_newsroom", async () => {
     await publish({ envelope: envelope(300 * 1024) });
     const rows = await chain.backendFor(RELAYER).select("denuncia", { newsroom: NAME }, { offset: 0, limit: 20 });
     expect(rows.every((r) => r.owner === NEWSROOM)).toBe(true);
   });
 
-  it("um_grupo_incompleto_nao_aparece_e_e_contado", async () => {
+  it("an_incomplete_group_does_not_appear_and_is_counted", async () => {
     const big = envelope(300 * 1024);
     const parts = splitIntoParts(big);
     const backend = chain.backendFor(RELAYER);
@@ -106,22 +106,22 @@ describe("RF-19 anexos grandes em várias partes", () => {
   });
 });
 
-describe("RF-12 listar denúncias", () => {
-  it("lista_por_redacao_e_isola_outras_redacoes", async () => {
+describe("RF-12 list tips", () => {
+  it("lists_by_newsroom_and_isolates_other_newsrooms", async () => {
     await publish();
     await publish({ newsroom: "outra.eth", contentHash: HASH("cc") });
     expect((await newsroomStore().listSubmissions({ newsroom: NAME })).items).toHaveLength(1);
     expect((await newsroomStore().listSubmissions({ newsroom: "vazia.eth" })).items).toEqual([]);
   });
 
-  it("filtra_por_categoria", async () => {
+  it("filters_by_category", async () => {
     await publish({ category: "saude", contentHash: HASH("a1") });
     await publish({ category: "obras", contentHash: HASH("a2") });
     const { items } = await newsroomStore().listSubmissions({ newsroom: NAME, category: "saude" });
     expect(items.map((i) => i.category)).toEqual(["saude"]);
   });
 
-  it("ordena_da_mais_recente_para_a_mais_antiga", async () => {
+  it("sorts_from_newest_to_oldest", async () => {
     await publish({ contentHash: HASH("01") });
     await publish({ contentHash: HASH("02") });
     await publish({ contentHash: HASH("03") });
@@ -129,7 +129,7 @@ describe("RF-12 listar denúncias", () => {
     expect(items.map((i) => i.contentHash)).toEqual([HASH("03"), HASH("02"), HASH("01")]);
   });
 
-  it("pagina_em_blocos_sem_perder_nem_repetir_com_mais_de_100_itens", async () => {
+  it("paginates_in_blocks_without_losing_or_repeating_with_more_than_100_items", async () => {
     for (let i = 0; i < 250; i++) await publish({ contentHash: ("0x" + i.toString(16).padStart(64, "0")) as `0x${string}` });
     const store = newsroomStore();
     const p1 = await store.listSubmissions({ newsroom: NAME, limit: 100, offset: 0 });
@@ -140,14 +140,14 @@ describe("RF-12 listar denúncias", () => {
     expect(new Set([...p1.items, ...p2.items, ...p3.items].map((i) => i.contentHash)).size).toBe(250);
   });
 
-  it("a_pagina_maxima_e_100", async () => {
+  it("the_maximum_page_is_100", async () => {
     expect(await codeOf(newsroomStore().listSubmissions({ newsroom: NAME, limit: 101 }))).toBe("input");
     expect(await codeOf(newsroomStore().listSubmissions({ newsroom: "Invalida" }))).toBe("input");
   });
 });
 
-describe("RF-14 anotações de status (o envelope não muda)", () => {
-  it("registra_status_sem_alterar_o_envelope_e_lista_pelo_ultimo_status", async () => {
+describe("RF-14 status annotations (the envelope does not change)", () => {
+  it("records_status_without_changing_the_envelope_and_lists_by_the_latest_status", async () => {
     const { key } = await publish();
     const j = journalistStore();
     await j.annotate({ newsroom: NAME, denunciaKey: key, status: "review", journalist: JOURNALIST });
@@ -155,15 +155,15 @@ describe("RF-14 anotações de status (o envelope não muda)", () => {
     expect(await newsroomStore().latestStatus(key)).toBe("verified");
     const { items } = await newsroomStore().listSubmissions({ newsroom: NAME });
     expect(items[0]!.status).toBe("verified");
-    expect(items[0]!.envelope).toEqual(envelope(500)); // inalterado
+    expect(items[0]!.envelope).toEqual(envelope(500)); // unchanged
   });
 
-  it("sem_anotacao_o_status_e_new", async () => {
+  it("without_annotation_the_status_is_new", async () => {
     const { key } = await publish();
     expect(await newsroomStore().latestStatus(key)).toBe("new");
   });
 
-  it("filtra_por_status_usando_a_ultima_anotacao", async () => {
+  it("filters_by_status_using_the_latest_annotation", async () => {
     const a = await publish({ contentHash: HASH("b1") });
     await publish({ contentHash: HASH("b2") });
     await journalistStore().annotate({ newsroom: NAME, denunciaKey: a.key, status: "discarded", journalist: JOURNALIST });
@@ -171,14 +171,14 @@ describe("RF-14 anotações de status (o envelope não muda)", () => {
     expect((await newsroomStore().listSubmissions({ newsroom: NAME, status: "new" })).items).toHaveLength(1);
   });
 
-  it("recusa_status_desconhecido", async () => {
+  it("rejects_unknown_status", async () => {
     const { key } = await publish();
     expect(await codeOf(journalistStore().annotate({ newsroom: NAME, denunciaKey: key, status: "qualquer" as never, journalist: JOURNALIST }))).toBe("input");
   });
 });
 
-describe("RF-15 respostas pelo mailbox", () => {
-  it("busca_por_mailbox_e_devolve_so_as_respostas_dele", async () => {
+describe("RF-15 replies by mailbox", () => {
+  it("searches_by_mailbox_and_returns_only_its_replies", async () => {
     await journalistStore().publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: envelope(40, 1), retentionSeconds: 3600 });
     await journalistStore().publishReply({ newsroom: NAME, mailboxId: HASH("ef"), sealed: envelope(40, 2), retentionSeconds: 3600 });
     const mine = await relayerStore().getReplies(MAILBOX);
@@ -187,13 +187,13 @@ describe("RF-15 respostas pelo mailbox", () => {
     expect(await relayerStore().getReplies(HASH("99"))).toEqual([]);
   });
 
-  it("devolve_da_mais_recente_para_a_mais_antiga", async () => {
+  it("returns_from_newest_to_oldest", async () => {
     await journalistStore().publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: envelope(10, 1), retentionSeconds: 3600 });
     await journalistStore().publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: envelope(10, 2), retentionSeconds: 3600 });
     expect((await relayerStore().getReplies(MAILBOX)).map((r) => r.sealed[0])).toEqual([2, 1]);
   });
 
-  it("recusa_resposta_vazia_grande_demais_ou_mailbox_invalido", async () => {
+  it("rejects_empty_reply_too_large_or_invalid_mailbox", async () => {
     const j = journalistStore();
     expect(await codeOf(j.publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: new Uint8Array(), retentionSeconds: 60 }))).toBe("input");
     expect(await codeOf(j.publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: envelope(129_000), retentionSeconds: 60 }))).toBe("too_large");
@@ -201,21 +201,21 @@ describe("RF-15 respostas pelo mailbox", () => {
   });
 });
 
-describe("RF-18 retenção", () => {
-  it("entidade_expirada_some_da_consulta", async () => {
+describe("RF-18 retention", () => {
+  it("expired_entity_disappears_from_the_query", async () => {
     await publish({ retentionSeconds: 60 });
     chain.advanceSeconds(120);
     expect((await newsroomStore().listSubmissions({ newsroom: NAME })).items).toEqual([]);
   });
 
-  it("lista_denuncias_proximas_do_vencimento", async () => {
+  it("lists_tips_close_to_expiry", async () => {
     await publish({ contentHash: HASH("c1"), retentionSeconds: 600 });
     await publish({ contentHash: HASH("c2"), retentionSeconds: 100_000 });
     const soon = await newsroomStore().listExpiring({ newsroom: NAME, withinSeconds: 1000 });
     expect(soon.map((s) => s.contentHash)).toEqual([HASH("c1")]);
   });
 
-  it("estende_a_expiracao_antes_do_vencimento", async () => {
+  it("extends_expiration_before_expiry", async () => {
     const { key } = await publish({ retentionSeconds: 600 });
     await relayerStore().renew({ key, retentionSeconds: 100_000 });
     expect(await newsroomStore().listExpiring({ newsroom: NAME, withinSeconds: 1000 })).toEqual([]);
@@ -223,12 +223,12 @@ describe("RF-18 retenção", () => {
     expect((await newsroomStore().listSubmissions({ newsroom: NAME })).items).toHaveLength(1);
   });
 
-  it("nao_estende_para_data_anterior_a_atual", async () => {
+  it("does_not_extend_to_a_date_earlier_than_the_current_one", async () => {
     const { key } = await publish({ retentionSeconds: 100_000 });
     expect(await relayerStore().renew({ key, retentionSeconds: 600 })).toBe("unchanged");
   });
 
-  it("renewExpiring_renova_so_o_que_esta_proximo_e_devolve_a_contagem", async () => {
+  it("renewExpiring_renews_only_what_is_close_and_returns_the_count", async () => {
     await publish({ contentHash: HASH("d1"), retentionSeconds: 600 });
     await publish({ contentHash: HASH("d2"), retentionSeconds: 600 });
     await publish({ contentHash: HASH("d3"), retentionSeconds: 1_000_000 });
@@ -238,28 +238,28 @@ describe("RF-18 retenção", () => {
   });
 });
 
-describe("limite de vida máximo da cadeia (achado do teste real: ~182 dias)", () => {
-  it("o_maximo_e_de_7884000_blocos_de_2_segundos", () => {
+describe("chain maximum lifetime (finding from the real test: ~182 days)", () => {
+  it("the_maximum_is_7884000_blocks_of_2_seconds", () => {
     expect(ARKIV_MAX_RETENTION_SECONDS).toBe(7_884_000 * 2);
   });
 
-  it("o_maximo_da_loja_deixa_folga_para_a_diferenca_de_bloco", () => {
+  it("the_store_maximum_leaves_margin_for_the_block_difference", () => {
     expect(STORE_MAX_RETENTION_SECONDS).toBeLessThan(ARKIV_MAX_RETENTION_SECONDS);
   });
 
-  it("recusa_retencao_alem_do_maximo_da_loja_e_aceita_exatamente_o_maximo_da_loja", async () => {
+  it("rejects_retention_beyond_the_store_maximum_and_accepts_exactly_the_store_maximum", async () => {
     expect(await codeOf(publish({ retentionSeconds: STORE_MAX_RETENTION_SECONDS + 2 }))).toBe("input");
-    expect(await codeOf(publish({ retentionSeconds: STORE_MAX_RETENTION_SECONDS }))).toBe("sem erro");
+    expect(await codeOf(publish({ retentionSeconds: STORE_MAX_RETENTION_SECONDS }))).toBe("no error");
     expect(await codeOf(journalistStore().publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: envelope(5), retentionSeconds: STORE_MAX_RETENTION_SECONDS + 2 }))).toBe("input");
     expect(await codeOf(journalistStore().annotate({ newsroom: NAME, denunciaKey: HASH("aa"), status: "review", journalist: JOURNALIST, retentionSeconds: STORE_MAX_RETENTION_SECONDS + 2 }))).toBe("input");
   });
 
-  it("renovar_alem_do_maximo_e_recusado", async () => {
+  it("renewing_beyond_the_maximum_is_rejected", async () => {
     const { key } = await publish();
     expect(await codeOf(relayerStore().renew({ key, retentionSeconds: STORE_MAX_RETENTION_SECONDS + 2 }))).toBe("input");
   });
 
-  it("a_retencao_padrao_das_anotacoes_cabe_no_maximo", async () => {
+  it("the_default_annotation_retention_fits_within_the_maximum", async () => {
     expect(DEFAULT_ANNOTATION_RETENTION_SECONDS).toBeLessThan(ARKIV_MAX_RETENTION_SECONDS);
     const { key } = await publish();
     const annKey = await journalistStore().annotate({ newsroom: NAME, denunciaKey: key, status: "review", journalist: JOURNALIST });
@@ -269,12 +269,12 @@ describe("limite de vida máximo da cadeia (achado do teste real: ~182 dias)", (
   });
 });
 
-describe("A1 autoria de anotações e respostas (o criador vem da cadeia)", () => {
+describe("A1 authorship of annotations and replies (the creator comes from the chain)", () => {
   const STRANGER = "0x9999999999999999999999999999999999999999" as const;
   const strangerStore = () => createStore(chain.backendFor(STRANGER));
   const allowed = (set: string[]) => ({ creator }: { creator: string }) => set.includes(creator.toLowerCase());
 
-  it("anotacao_guarda_o_nome_de_quem_anotou_e_o_criador_real", async () => {
+  it("annotation_stores_the_name_of_whoever_annotated_and_the_real_creator", async () => {
     const { key } = await publish();
     await journalistStore().annotate({ newsroom: NAME, denunciaKey: key, status: "review", journalist: JOURNALIST, authorName: "maria.investiga.eth" });
     const [a] = await newsroomStore().listAnnotations({ newsroom: NAME });
@@ -282,17 +282,17 @@ describe("A1 autoria de anotações e respostas (o criador vem da cadeia)", () =
     expect(a!.creator.toLowerCase()).toBe(JOURNALIST);
   });
 
-  it("anotacao_de_carteira_nao_autorizada_e_ignorada", async () => {
+  it("annotation_from_unauthorized_wallet_is_ignored", async () => {
     const { key } = await publish();
     await journalistStore().annotate({ newsroom: NAME, denunciaKey: key, status: "review", journalist: JOURNALIST });
-    await strangerStore().annotate({ newsroom: NAME, denunciaKey: key, status: "discarded", journalist: JOURNALIST }); // finge ser o jornalista
+    await strangerStore().annotate({ newsroom: NAME, denunciaKey: key, status: "discarded", journalist: JOURNALIST }); // pretends to be the journalist
     const authorize = allowed([JOURNALIST]);
     const { items } = await newsroomStore().listSubmissions({ newsroom: NAME, authorize });
     expect(items[0]!.status).toBe("review");
     expect(await newsroomStore().latestStatus(key, authorize)).toBe("review");
   });
 
-  it("contagem_de_ignoradas", async () => {
+  it("count_of_ignored", async () => {
     const { key } = await publish();
     await strangerStore().annotate({ newsroom: NAME, denunciaKey: key, status: "discarded", journalist: JOURNALIST });
     await strangerStore().annotate({ newsroom: NAME, denunciaKey: key, status: "verified", journalist: JOURNALIST });
@@ -301,15 +301,15 @@ describe("A1 autoria de anotações e respostas (o criador vem da cadeia)", () =
     expect(r.items[0]!.status).toBe("new");
   });
 
-  it("status_volta_ao_anterior_se_a_ultima_anotacao_e_invalida", async () => {
+  it("status_returns_to_the_previous_one_if_the_last_annotation_is_invalid", async () => {
     const { key } = await publish();
     await journalistStore().annotate({ newsroom: NAME, denunciaKey: key, status: "verified", journalist: JOURNALIST });
     await strangerStore().annotate({ newsroom: NAME, denunciaKey: key, status: "discarded", journalist: JOURNALIST });
     expect((await newsroomStore().listSubmissions({ newsroom: NAME, authorize: allowed([JOURNALIST]) })).items[0]!.status).toBe("verified");
-    expect((await newsroomStore().listSubmissions({ newsroom: NAME })).items[0]!.status).toBe("discarded"); // sem filtro, comportamento antigo
+    expect((await newsroomStore().listSubmissions({ newsroom: NAME })).items[0]!.status).toBe("discarded"); // without a filter, old behavior
   });
 
-  it("a_autorizacao_recebe_criador_e_nome_e_e_consultada_uma_vez_por_par", async () => {
+  it("authorization_receives_creator_and_name_and_is_queried_once_per_pair", async () => {
     const { key } = await publish();
     for (let i = 0; i < 3; i++) await journalistStore().annotate({ newsroom: NAME, denunciaKey: key, status: "review", journalist: JOURNALIST, authorName: "maria.investiga.eth" });
     const seen: unknown[] = [];
@@ -317,7 +317,7 @@ describe("A1 autoria de anotações e respostas (o criador vem da cadeia)", () =
     expect(seen).toEqual([{ creator: JOURNALIST, authorName: "maria.investiga.eth" }]);
   });
 
-  it("autorizacao_assincrona_e_aceita", async () => {
+  it("asynchronous_authorization_is_accepted", async () => {
     const { key } = await publish();
     await journalistStore().annotate({ newsroom: NAME, denunciaKey: key, status: "review", journalist: JOURNALIST });
     const r = await newsroomStore().listSubmissions({ newsroom: NAME, authorize: async () => false });
@@ -325,29 +325,29 @@ describe("A1 autoria de anotações e respostas (o criador vem da cadeia)", () =
     expect(r.ignoredAnnotations).toBe(1);
   });
 
-  it("recusa_nome_de_autor_invalido", async () => {
+  it("rejects_invalid_author_name", async () => {
     const { key } = await publish();
     expect(await codeOf(journalistStore().annotate({ newsroom: NAME, denunciaKey: key, status: "review", journalist: JOURNALIST, authorName: "Nome Inválido!" }))).toBe("input");
     expect(await codeOf(journalistStore().publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: envelope(10), retentionSeconds: 60, authorName: "x" }))).toBe("input");
   });
 
-  it("resposta_traz_o_criador_e_o_nome", async () => {
+  it("reply_brings_the_creator_and_the_name", async () => {
     await journalistStore().publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: envelope(30, 4), retentionSeconds: 3600, authorName: "maria.investiga.eth" });
     await newsroomStore().publishReply({ newsroom: NAME, mailboxId: MAILBOX, sealed: envelope(30, 5), retentionSeconds: 3600 });
     const rs = await relayerStore().getReplies(MAILBOX);
     expect(rs.map((r) => [r.creator.toLowerCase(), r.authorName])).toEqual([[NEWSROOM, undefined], [JOURNALIST, "maria.investiga.eth"]]);
   });
 
-  it("autor_vazio_na_cadeia_conta_como_ausente", async () => {
+  it("empty_author_on_the_chain_counts_as_absent", async () => {
     const { key } = await publish();
-    // o nó pode devolver texto vazio ou nulo para colunas não preenchidas (não confirmamos qual)
+    // the node may return empty or null text for unfilled columns (we have not confirmed which)
     await chain.backendFor(JOURNALIST).create("anotacao", { newsroom: NAME, denunciaKey: key, status: "review", byJournalist: JOURNALIST, authorName: "" }, new Uint8Array([1]), { expirationSeconds: 3600, readonly: true, permissionlessExtension: true });
     await chain.backendFor(JOURNALIST).create("resposta", { newsroom: NAME, mailboxId: MAILBOX, authorName: "" }, envelope(10), { expirationSeconds: 3600, readonly: true, permissionlessExtension: true });
     expect((await newsroomStore().listAnnotations({ newsroom: NAME }))[0]!.authorName).toBeUndefined();
     expect((await relayerStore().getReplies(MAILBOX))[0]!.authorName).toBeUndefined();
   });
 
-  it("listAnnotations_filtra_por_denuncia", async () => {
+  it("listAnnotations_filters_by_tip", async () => {
     const a = await publish({ contentHash: HASH("c1") });
     const b = await publish({ contentHash: HASH("c2") });
     await journalistStore().annotate({ newsroom: NAME, denunciaKey: a.key, status: "review", journalist: JOURNALIST });

@@ -6,8 +6,8 @@ const NAME = () => `v${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)
 const HASH = (c: string) => ("0x" + c.repeat(32)) as `0x${string}`;
 const rand = () => ("0x" + [...globalThis.crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("")) as `0x${string}`;
 
-describe("loja sobre o nó Arkiv real", () => {
-  it("publica_transfere_a_custodia_e_a_redacao_le_e_anota", async () => {
+describe("store on the real Arkiv node", () => {
+  it("publishes_transfers_custody_and_the_newsroom_reads_and_annotates", async () => {
     const relayerBackend = await newBackend();
     const newsroomBackend = await newBackend();
     const relayer = createStore(relayerBackend);
@@ -29,7 +29,7 @@ describe("loja sobre o nó Arkiv real", () => {
     expect((await newsroom.listSubmissions({ newsroom: name, status: "verified" })).items).toHaveLength(1);
   });
 
-  it("o_relayer_renova_sem_ser_dono_e_nao_consegue_transferir_de_volta", async () => {
+  it("the_relayer_renews_without_being_owner_and_cannot_transfer_back", async () => {
     const relayerBackend = await newBackend();
     const newsroomBackend = await newBackend();
     const relayer = createStore(relayerBackend);
@@ -40,7 +40,7 @@ describe("loja sobre o nó Arkiv real", () => {
     await expect(relayerBackend.changeOwnership(key, relayerBackend.account)).rejects.toThrow();
   });
 
-  it("anexo_grande_vira_varias_partes_e_volta_inteiro", async () => {
+  it("large_attachment_becomes_several_parts_and_comes_back_whole", async () => {
     const relayerBackend = await newBackend();
     const newsroomBackend = await newBackend();
     const relayer = createStore(relayerBackend);
@@ -54,9 +54,9 @@ describe("loja sobre o nó Arkiv real", () => {
     expect(items[0]!.envelope).toEqual(big);
   });
 
-  it("a_fonte_encontra_a_resposta_pelo_mailbox", async () => {
+  it("the_source_finds_the_reply_by_mailbox", async () => {
     const journalistBackend = await newBackend();
-    const sourceBackend = await newBackend(); // quem lê não precisa de direitos
+    const sourceBackend = await newBackend(); // whoever reads does not need rights
     const journalist = createStore(journalistBackend);
     const mailbox = rand();
     await journalist.publishReply({ newsroom: NAME(), mailboxId: mailbox, sealed: new Uint8Array(60).fill(8), retentionSeconds: 3600 });

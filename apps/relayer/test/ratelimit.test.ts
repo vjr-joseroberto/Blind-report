@@ -2,34 +2,34 @@ import { describe, expect, it } from "vitest";
 import { createRateLimiter, createRelayerApp } from "../src/index.ts";
 import { makeDeps, req } from "./helpers.ts";
 
-describe("limite global de requisições (protege o RPC; sem IP, sem estado por pessoa)", () => {
-  it("permite_ate_o_limite_e_recusa_o_excedente", () => {
+describe("global request limit (protects the RPC; no IP, no per-person state)", () => {
+  it("allows_up_to_the_limit_and_rejects_the_excess", () => {
     let t = 0;
     const l = createRateLimiter({ perMinute: 3, now: () => t });
     expect([l.tryTake(), l.tryTake(), l.tryTake(), l.tryTake()]).toEqual([true, true, true, false]);
   });
 
-  it("reabastece_com_o_tempo", () => {
+  it("refills_over_time", () => {
     let t = 0;
     const l = createRateLimiter({ perMinute: 60, now: () => t });
     for (let i = 0; i < 60; i++) l.tryTake();
     expect(l.tryTake()).toBe(false);
-    t += 1000; // 1 ficha por segundo
+    t += 1000; // 1 token per second
     expect(l.tryTake()).toBe(true);
     expect(l.tryTake()).toBe(false);
-    t += 10 * 60_000; // nunca passa da capacidade
+    t += 10 * 60_000; // never exceeds capacity
     for (let i = 0; i < 60; i++) expect(l.tryTake()).toBe(true);
     expect(l.tryTake()).toBe(false);
   });
 
-  it("recusa_configuracao_invalida", () => {
+  it("rejects_invalid_configuration", () => {
     expect(() => createRateLimiter({ perMinute: 0, now: () => 0 })).toThrow();
     expect(() => createRateLimiter({ perMinute: 1.5, now: () => 0 })).toThrow();
   });
 });
 
-describe("limite aplicado no relayer", () => {
-  it("responde_429_com_codigo_e_nao_consulta_o_ens", async () => {
+describe("limit applied in the relayer", () => {
+  it("responds_429_with_code_and_does_not_query_ens", async () => {
     const f = makeDeps({ limiter: { tryTake: () => false } });
     const r = await createRelayerApp(f.deps).handle(req("GET", "/rp-context?newsroom=investiga.eth"));
     expect(r.status).toBe(429);
@@ -38,7 +38,7 @@ describe("limite aplicado no relayer", () => {
     expect(f.resolveNewsroom).not.toHaveBeenCalled();
   });
 
-  it("health_e_preflight_nao_gastam_ficha", async () => {
+  it("health_and_preflight_do_not_spend_a_token", async () => {
     let taken = 0;
     const f = makeDeps({ limiter: { tryTake: () => (taken++, false) } });
     const app = createRelayerApp(f.deps);
@@ -47,7 +47,7 @@ describe("limite aplicado no relayer", () => {
     expect(taken).toBe(0);
   });
 
-  it("o_log_do_429_tem_so_rota_status_e_codigo", async () => {
+  it("the_429_log_has_only_route_status_and_code", async () => {
     const f = makeDeps({ limiter: { tryTake: () => false } });
     await createRelayerApp(f.deps).handle(req("POST", "/submissions", { headers: { "x-forwarded-for": "203.0.113.9" } }));
     expect(JSON.stringify(f.logs)).not.toContain("203.0.113.9");

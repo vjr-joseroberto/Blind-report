@@ -16,26 +16,26 @@ async function start(over: Parameters<typeof makeDeps>[0] = {}) {
   return { f, url: `http://127.0.0.1:${server.port}` };
 }
 
-describe("adaptador HTTP (node:http)", () => {
-  it("serve_o_health_e_a_rota_desconhecida", async () => {
+describe("HTTP adapter (node:http)", () => {
+  it("serves_health_and_the_unknown_route", async () => {
     const { url } = await start();
     expect((await fetch(`${url}/health`)).status).toBe(200);
     expect((await fetch(`${url}/nada`)).status).toBe(404);
   });
 
-  it("recusa_corpo_acima_do_maximo_com_413", async () => {
+  it("rejects_body_above_maximum_with_413", async () => {
     const { url } = await start({ maxBodyBytes: 200 });
     const r = await fetch(`${url}/submissions`, { method: "POST", body: "x".repeat(5000), headers: { "content-type": "application/json" } });
     expect(r.status).toBe(413);
   });
 
-  it("repassa_o_corpo_e_os_cabecalhos_ao_manipulador", async () => {
+  it("passes_the_body_and_headers_to_the_handler", async () => {
     const { url } = await start({ allowedOrigins: ["https://app.example.org"] });
     const r = await fetch(`${url}/health`, { headers: { origin: "https://app.example.org" } });
     expect(r.headers.get("access-control-allow-origin")).toBe("https://app.example.org");
   });
 
-  it("nao_imprime_nada_no_console_nem_registra_ip_ou_corpo", async () => {
+  it("prints_nothing_to_the_console_and_logs_neither_ip_nor_body", async () => {
     const spies = (["log", "info", "warn", "error", "debug"] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}));
     const { url, f } = await start();
     await fetch(`${url}/submissions`, { method: "POST", body: "CORPO-SECRETO-DA-FONTE", headers: { "x-forwarded-for": "203.0.113.9" } });
@@ -47,7 +47,7 @@ describe("adaptador HTTP (node:http)", () => {
     expect(text).not.toContain("127.0.0.1");
   });
 
-  it("fecha_de_forma_limpa", async () => {
+  it("closes_cleanly", async () => {
     const { url } = await start();
     await close!();
     close = undefined;

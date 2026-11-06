@@ -4,9 +4,9 @@ import type { HttpRequest, HttpResponse } from "./types.ts";
 
 type Handler = { handle(req: HttpRequest): Promise<HttpResponse> };
 
-const tooLarge = JSON.stringify({ error: { code: "body_too_large", message: "O corpo da requisição é grande demais." } });
+const tooLarge = JSON.stringify({ error: { code: "body_too_large", message: "The request body is too large." } });
 
-/** Adaptador mínimo de node:http. Não registra nada: nem IP, nem cabeçalhos, nem corpo. */
+/** Minimal node:http adapter. Logs nothing: not IP, not headers, not body. */
 export async function createHttpServer(opts: { handler: Handler; maxBodyBytes: number; host: string; port: number }): Promise<{ port: number; close: () => Promise<void> }> {
   const reply = (res: ServerResponse, r: HttpResponse) => {
     res.writeHead(r.status, r.headers);
@@ -45,7 +45,7 @@ export async function createHttpServer(opts: { handler: Handler; maxBodyBytes: n
       for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string") headers[k.toLowerCase()] = v;
       reply(res, await opts.handler.handle({ method: (req.method ?? "GET").toUpperCase(), path: url.pathname, query: url.searchParams, headers, body }));
     } catch {
-      if (!res.headersSent) reply(res, { status: 500, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: { code: "internal", message: "Erro interno." } }) });
+      if (!res.headersSent) reply(res, { status: 500, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: { code: "internal", message: "Internal error." } }) });
     }
   });
   server.requestTimeout = 30_000;

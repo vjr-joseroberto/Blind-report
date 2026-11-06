@@ -4,7 +4,7 @@ import { ABIS, ENSV2_SEPOLIA } from "./deployments.ts";
 import { InvalidNameError, NewsroomNotFoundError, RecordsError } from "./errors.ts";
 import { decodePublicKey, parseNewsroomRecords, type NewsroomInfo } from "./records.ts";
 
-/** O mínimo do cliente de leitura (um PublicClient do viem satisfaz); injetável para testes. */
+/** The minimum read client (a viem PublicClient suffices); injectable for tests. */
 export type EnsReadClient = {
   getEnsText(args: { name: string; key: string; universalResolverAddress: Address }): Promise<string | null>;
   getEnsAddress(args: { name: string; universalResolverAddress: Address }): Promise<Address | null>;
@@ -29,9 +29,9 @@ export function createReader(options: ReaderOptions) {
   const text = (name: string, key: string) => client.getEnsText({ name, key, universalResolverAddress: universalResolver });
 
   const reader = {
-    /** Resolve a redação só pelo nome (Universal Resolver). */
+    /** Resolves the newsroom by name only (Universal Resolver). */
     async resolveNewsroom(name: string): Promise<NewsroomInfo> {
-      if (!isNewsroomName(name)) throw new InvalidNameError(name, "esperado um nome .eth em minúsculas");
+      if (!isNewsroomName(name)) throw new InvalidNameError(name, "expected a lowercase .eth name");
       const [pubkey, version, policy, relayer, custodian] = await Promise.all([
         text(name, ENS_KEYS.pubkey),
         text(name, ENS_KEYS.pubkeyVersion),
@@ -43,21 +43,21 @@ export function createReader(options: ReaderOptions) {
       return parseNewsroomRecords({ name, pubkey, version, policy, relayer, custodian });
     },
 
-    /** O nome `.eth` de segundo nível está livre para registrar? (O registrar é a fonte da verdade.) */
+    /** Is the second-level `.eth` name free to register? (The registrar is the source of truth.) */
     async isNameAvailable(name: string): Promise<boolean> {
-      if (!isNewsroomName(name) || name.slice(0, -4).includes(".")) throw new InvalidNameError(name, "esperado um nome .eth de segundo nível, em minúsculas");
+      if (!isNewsroomName(name) || name.slice(0, -4).includes(".")) throw new InvalidNameError(name, "expected a second-level .eth name, in lowercase");
       return (await client.readContract({ address: ethRegistrar, abi: ABIS.ethRegistrar, functionName: "isAvailable", args: [name.slice(0, -4)] })) as boolean;
     },
 
-    /** Chave de leitura do jornalista. Atenção: continua legível depois de revogar ou expirar (use isActiveJournalist). */
+    /** Journalist reader key. Note: it remains readable after revoking or expiring (use isActiveJournalist). */
     async resolveReaderKey(name: string): Promise<Uint8Array> {
       return decodePublicKey(await text(name, ENS_KEYS.readerKey), "readerkey", ENS_KEYS.readerKey);
     },
 
-    /** Dono do subnome do jornalista no registry, ou `null` se não está ativo. Decidido pelo registry, nunca pelo texto. */
+    /** Owner of the journalist subname in the registry, or `null` if not active. Decided by the registry, never by text. */
     async journalistOwner(name: string): Promise<Address | null> {
       const m = JOURNALIST_RE.exec(name);
-      if (!m) throw new InvalidNameError(name, "esperado <jornalista>.<redação>.eth");
+      if (!m) throw new InvalidNameError(name, "expected <journalist>.<newsroom>.eth");
       const [, journalist, newsroom] = m as unknown as [string, string, string];
       const subregistry = (await client.readContract({ address: ethRegistry, abi: ABIS.ethRegistry, functionName: "getSubregistry", args: [newsroom] })) as string;
       if (subregistry.toLowerCase() === ZERO) return null;
@@ -65,7 +65,7 @@ export function createReader(options: ReaderOptions) {
       return owner.toLowerCase() === ZERO ? null : (owner as Address);
     },
 
-    /** O jornalista está ativo? */
+    /** Is the journalist active? */
     async isActiveJournalist(name: string): Promise<boolean> {
       return (await reader.journalistOwner(name)) !== null;
     },

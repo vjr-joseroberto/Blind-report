@@ -1,5 +1,5 @@
-// Lógica do painel da redação, sem DOM: um estado e as ações que a tela liga aos botões.
-// Cada ação confere o papel da sessão (`canDo`): a regra vale no código, não só na tela.
+// Logic for the newsroom panel, without DOM: a state and the actions the screen wires to the buttons.
+// Every action checks the session role (`canDo`): the rule holds in the code, not only on the screen.
 import type { Status, Submission } from "@safe-whistle/arkiv-store";
 import { fromBase64Url, toBase64Url, type NewsroomPolicy } from "@safe-whistle/core";
 import type { AdminStep } from "@safe-whistle/ens-client";
@@ -10,14 +10,14 @@ type Client = ReturnType<typeof createNewsroomClient>;
 
 export type ViewError = { code: string; message: string };
 export type PanelState = {
-  /** Uma ação que escreve (carteira) ou mexe nas chaves está em andamento. */
+  /** An action that writes (wallet) or touches the keys is in progress. */
   busy: boolean;
-  /** Uma leitura de rede está em andamento (caixa de entrada, vencimentos): não trava o resto do painel. */
+  /** A network read is in progress (inbox, expirations): it does not lock the rest of the panel. */
   loading: boolean;
   error?: ViewError;
   notice?: string;
   progress?: AdminStep;
-  /** Quantas transações já foram enviadas no cadastro (para "confirme na carteira (n de 8)"). */
+  /** How many transactions have already been sent in the registration (for "confirm in the wallet (n of 8)"). */
   txCount: number;
   newsroom?: { name: string };
   keyVersion?: number;
@@ -26,18 +26,18 @@ export type PanelState = {
   backupText?: string;
   sharedText?: string;
   inbox?: { items: Submission[]; hasMore: boolean };
-  /** Anotações descartadas por não terem sido escritas pela redação. */
+  /** Notes discarded because they were not written by the newsroom. */
   ignoredAnnotations?: number;
-  /** `envelope` é o arquivo cifrado que pode ser divulgado e verificado na tela da fonte. */
+  /** `envelope` is the encrypted file that can be published and verified on the source screen. */
   opened?: Decrypted & { status: Status; envelope: Uint8Array };
   expiring?: Submission[];
   txs: SentTx[];
 };
 
-const FORBIDDEN: ViewError = { code: "forbidden", message: "Esta ação não está disponível para o seu papel." };
+const FORBIDDEN: ViewError = { code: "forbidden", message: "This action is not available for your role." };
 
 const toViewError = (e: unknown): ViewError =>
-  e instanceof NewsroomError ? { code: e.code, message: e.message } : { code: "unexpected", message: "Algo deu errado. Tente de novo." };
+  e instanceof NewsroomError ? { code: e.code, message: e.message } : { code: "unexpected", message: "Something went wrong. Try again." };
 
 export function createPanelController(client: Client, opts: { role?: Role } = {}) {
   let role: Role = opts.role ?? "visitor";
@@ -49,7 +49,7 @@ export function createPanelController(client: Client, opts: { role?: Role } = {}
   };
   const keysLoaded = () => client.keyVersions().length > 0;
 
-  /** Executa uma ação: confere o papel, marca ocupado, limpa avisos e mostra a causa se falhar. */
+  /** Runs an action: checks the role, marks busy, clears notices and shows the cause on failure. */
   async function run(action: Action, fn: () => Promise<Partial<PanelState> | void>, opts: { read?: boolean } = {}): Promise<void> {
     if (!canDo(role, action)) {
       set({ error: FORBIDDEN, notice: undefined });
@@ -83,7 +83,7 @@ export function createPanelController(client: Client, opts: { role?: Role } = {}
       listeners.add(fn);
       return () => listeners.delete(fn);
     },
-    /** Registra uma transação enviada pela carteira (para mostrar o link no explorador). */
+    /** Records a transaction sent by the wallet (to show the link in the explorer). */
     addTx(tx: SentTx) {
       set({ txs: [...state.txs, tx], txCount: state.txCount + 1 });
     },
@@ -96,27 +96,27 @@ export function createPanelController(client: Client, opts: { role?: Role } = {}
           policy: { categories: a.categories, maxBytes: a.maxBytes, attachments: a.attachments, epoch: "monthly" },
           onProgress: (progress) => set({ progress }),
         });
-        return { ...sync(), newsroom: { name: n.name }, progress: undefined, notice: `Redação ${n.name} cadastrada.` };
+        return { ...sync(), newsroom: { name: n.name }, progress: undefined, notice: `Newsroom ${n.name} registered.` };
       }),
 
     rotate: () =>
       run("rotate_key", async () => {
         const v = await client.rotateKey();
-        return { keyVersion: v, backupDone: false, notice: `Chave nova publicada (versão ${v}). Faça um novo backup.` };
+        return { keyVersion: v, backupDone: false, notice: `New key published (version ${v}). Make a new backup.` };
       }),
 
     updatePolicy: (policy: NewsroomPolicy) =>
       run("edit_policy", async () => {
         await client.updatePolicy(policy);
-        return { notice: "Política publicada no ENS." };
+        return { notice: "Policy published to ENS." };
       }),
 
     exportBackup: (password: string) =>
-      run("backup", async () => ({ backupText: await client.exportBackup(password), backupDone: true, notice: "Backup gerado. Clique em Baixar backup e guarde o arquivo e a senha em lugar seguro." })),
+      run("backup", async () => ({ backupText: await client.exportBackup(password), backupDone: true, notice: "Backup generated. Click Download backup and keep the file and the password in a safe place." })),
     importBackup: (blob: string, password: string) =>
       run("backup", async () => {
         await client.importBackup(blob, password);
-        return { ...sync(), backupDone: true, notice: "Backup importado." };
+        return { ...sync(), backupDone: true, notice: "Backup imported." };
       }),
 
     loadInbox: (q: { status?: Status; category?: string; limit?: number; offset?: number }) =>
@@ -145,23 +145,23 @@ export function createPanelController(client: Client, opts: { role?: Role } = {}
       if (!item) return;
       await run("reply", async () => {
         await client.reply(item, text);
-        return { notice: "Resposta enviada. Só a fonte consegue lê-la." };
+        return { notice: "Reply sent. Only the source can read it." };
       });
     },
 
     addJournalist: (a: { label: string; address: `0x${string}`; readerPublicKey: Uint8Array }) =>
       run("manage_team", async () => {
         await client.addJournalist(a);
-        return { notice: `Jornalista ${a.label} cadastrado.` };
+        return { notice: `Journalist ${a.label} registered.` };
       }),
 
     revokeJournalist: (label: string) =>
       run("manage_team", async () => {
         await client.revokeJournalist(label);
-        return { notice: `Jornalista ${label} revogado. Para impedir o uso de chaves já entregues, gire a chave.` };
+        return { notice: `Journalist ${label} revoked. To prevent the use of already delivered keys, rotate the key.` };
       }),
 
-    /** Cada pessoa gera a própria chave de leitura. Devolve nada se o papel não permite. */
+    /** Each person generates their own reader key. Returns nothing if the role does not allow it. */
     newReaderKey: (): { publicKey: string; privateKey: string } | undefined => {
       if (!canDo(role, "reader_key")) {
         set({ error: FORBIDDEN });
@@ -174,7 +174,7 @@ export function createPanelController(client: Client, opts: { role?: Role } = {}
     importShared: (blob: string, reader: { publicKey: string; privateKey: string }) =>
       run("import_shared_keyring", async () => {
         client.importSharedKeyring(blob, { publicKey: fromBase64Url(reader.publicKey), privateKey: fromBase64Url(reader.privateKey) });
-        return { ...sync(), notice: "Chaveiro importado." };
+        return { ...sync(), notice: "Keyring imported." };
       }),
 
     loadExpiring: (withinSeconds: number) => run("renew", async () => ({ expiring: await client.listExpiring(withinSeconds) }), { read: true }),
@@ -182,7 +182,7 @@ export function createPanelController(client: Client, opts: { role?: Role } = {}
       run("renew", async () => {
         const list = state.expiring ?? [];
         for (const s of list) await client.renew(s.key, retentionSeconds);
-        return { expiring: [], notice: `${list.length} denúncia(s) renovada(s).` };
+        return { expiring: [], notice: `${list.length} tip(s) renewed.` };
       }),
   };
 }

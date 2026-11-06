@@ -2,7 +2,7 @@ import { fromBase64Url, toBase64Url } from "@safe-whistle/core";
 import { SourceError } from "./errors.ts";
 import type { SourceReceipt } from "./types.ts";
 
-const bad = () => new SourceError("invalid_receipt", "O recibo é inválido ou está incompleto.");
+const bad = () => new SourceError("invalid_receipt", "The receipt is invalid or incomplete.");
 
 export function serializeReceipt(r: SourceReceipt): string {
   return JSON.stringify({

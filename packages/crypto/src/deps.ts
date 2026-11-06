@@ -1,6 +1,6 @@
 import { sodium } from "./sodium.ts";
 
-/** Dependências injetáveis: aleatoriedade e relógio (testes determinísticos). */
+/** Injectable dependencies: randomness and clock (deterministic tests). */
 export type Deps = {
   random: (n: number) => Uint8Array;
   now: () => Date;

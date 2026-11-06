@@ -1,4 +1,4 @@
-/** Política de recebimento publicada pela redação em `denuncia.policy`. */
+/** Submission policy published by the newsroom in `denuncia.policy`. */
 export type NewsroomPolicy = {
   categories: string[];
   maxBytes: number;
@@ -8,10 +8,10 @@ export type NewsroomPolicy = {
 
 export type Part = { index: number; total: number; data: Uint8Array };
 
-/** Chave de conteúdo embrulhada para um destinatário. */
+/** Content key wrapped for a recipient. */
 export type WrappedKey = { recipient: string; sealed: Uint8Array };
 
-/** Envelope cifrado. O *ciphertext* é binário (sem base64). Hashes em hexadecimal com prefixo 0x. */
+/** Encrypted envelope. The *ciphertext* is binary (not base64). Hashes in hexadecimal with the 0x prefix. */
 export type Envelope = {
   v: 1;
   newsroom: string;
@@ -26,7 +26,7 @@ export type Envelope = {
   clientTs: number;
 };
 
-/** Recibo: existe só no dispositivo da fonte. */
+/** Receipt: exists only on the source's device. */
 export type Receipt = {
   contentHash: string;
   salt: Uint8Array;

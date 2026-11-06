@@ -7,21 +7,21 @@ import { CUSTODIAN, EPOCH, NEWSROOM, makeDeps, makeEnvelopeBytes, req, submissio
 const json = (r: { body: string }) => JSON.parse(r.body) as Record<string, unknown>;
 const code = (r: { body: string }) => (json(r).error as { code: string }).code;
 
-describe("GET /health e rotas desconhecidas", () => {
-  it("health_responde_ok", async () => {
+describe("GET /health and unknown routes", () => {
+  it("health_responds_ok", async () => {
     const r = await createRelayerApp(makeDeps().deps).handle(req("GET", "/health"));
     expect(r.status).toBe(200);
     expect(json(r)).toEqual({ ok: true });
   });
 
-  it("rota_desconhecida_404_e_metodo_errado_405", async () => {
+  it("unknown_route_404_and_wrong_method_405", async () => {
     const app = createRelayerApp(makeDeps().deps);
     expect((await app.handle(req("GET", "/nada"))).status).toBe(404);
     expect((await app.handle(req("POST", "/health"))).status).toBe(405);
     expect((await app.handle(req("GET", "/submissions"))).status).toBe(405);
   });
 
-  it("respostas_nao_sao_armazenadas_em_cache_e_tem_cabecalhos_de_seguranca", async () => {
+  it("responses_are_not_cached_and_have_security_headers", async () => {
     const r = await createRelayerApp(makeDeps().deps).handle(req("GET", "/health"));
     expect(r.headers["cache-control"]).toBe("no-store");
     expect(r.headers["x-content-type-options"]).toBe("nosniff");
@@ -30,7 +30,7 @@ describe("GET /health e rotas desconhecidas", () => {
 });
 
 describe("GET /rp-context", () => {
-  it("devolve_a_assinatura_para_a_acao_da_epoca_corrente_do_relogio", async () => {
+  it("returns_the_signature_for_the_current_clock_epoch_action", async () => {
     const f = makeDeps();
     const r = await createRelayerApp(f.deps).handle(req("GET", `/rp-context?newsroom=${NEWSROOM}`));
     expect(r.status).toBe(200);
@@ -38,13 +38,13 @@ describe("GET /rp-context", () => {
     expect(f.rpContextFor).toHaveBeenCalledWith({ newsroom: NEWSROOM, epoch: EPOCH });
   });
 
-  it("exige_o_parametro_newsroom_e_recusa_nome_invalido", async () => {
+  it("requires_the_newsroom_parameter_and_rejects_an_invalid_name", async () => {
     const app = createRelayerApp(makeDeps().deps);
     expect((await app.handle(req("GET", "/rp-context"))).status).toBe(400);
     expect((await app.handle(req("GET", "/rp-context?newsroom=Invalida"))).status).toBe(400);
   });
 
-  it("recusa_redacao_inexistente_com_404", async () => {
+  it("rejects_an_unknown_newsroom_with_404", async () => {
     const f = makeDeps();
     f.resolveNewsroom.mockRejectedValueOnce(new NewsroomNotFoundError("nada.eth"));
     const r = await createRelayerApp(f.deps).handle(req("GET", "/rp-context?newsroom=nada.eth"));
@@ -53,9 +53,9 @@ describe("GET /rp-context", () => {
     expect(f.rpContextFor).not.toHaveBeenCalled();
   });
 
-  it("redacao_com_registros_invalidos_gera_422", async () => {
+  it("newsroom_with_invalid_records_returns_422", async () => {
     const f = makeDeps();
-    f.resolveNewsroom.mockRejectedValueOnce(new RecordsError("pubkey", "Falta o registro denuncia.pubkey."));
+    f.resolveNewsroom.mockRejectedValueOnce(new RecordsError("pubkey", "Missing the denuncia.pubkey record."));
     const r = await createRelayerApp(f.deps).handle(req("GET", "/rp-context?newsroom=quebrada.eth"));
     expect(r.status).toBe(422);
     expect(code(r)).toBe("newsroom_misconfigured");
@@ -65,7 +65,7 @@ describe("GET /rp-context", () => {
 describe("POST /submissions", () => {
   const post = (f: ReturnType<typeof makeDeps>, body: Uint8Array) => createRelayerApp(f.deps).handle(req("POST", "/submissions", { body }));
 
-  it("aceita_envio_valido_publica_e_responde_201_com_o_identificador", async () => {
+  it("accepts_a_valid_submission_publishes_and_responds_201_with_the_identifier", async () => {
     const f = makeDeps();
     const { bytes, envelope } = makeEnvelopeBytes();
     const r = await post(f, submissionBody({}, bytes));
@@ -77,7 +77,7 @@ describe("POST /submissions", () => {
     });
   });
 
-  it("a_ordem_e_politica_ens_depois_prova_do_world_depois_publicacao", async () => {
+  it("the_order_is_policy_ens_then_world_proof_then_publication", async () => {
     const f = makeDeps();
     const order: string[] = [];
     f.resolveNewsroom.mockImplementation(async (name: string) => {
@@ -96,7 +96,7 @@ describe("POST /submissions", () => {
     expect(order).toEqual(["ens", "world", "arkiv"]);
   });
 
-  it("json_invalido_ou_campos_ausentes_geram_400", async () => {
+  it("invalid_json_or_missing_fields_return_400", async () => {
     const f = makeDeps();
     expect((await post(f, new TextEncoder().encode("{nao json"))).status).toBe(400);
     expect((await post(f, new TextEncoder().encode("[]"))).status).toBe(400);
@@ -108,7 +108,7 @@ describe("POST /submissions", () => {
     expect(f.admit).not.toHaveBeenCalled();
   });
 
-  it("envelope_que_nao_e_base64url_ou_nao_decodifica_gera_4xx_sem_chamar_o_world", async () => {
+  it("envelope_that_is_not_base64url_or_does_not_decode_returns_4xx_without_calling_world", async () => {
     const f = makeDeps();
     expect((await post(f, submissionBody({ envelope: "isto não é base64url!" }))).status).toBe(400);
     const r = await post(f, submissionBody({}, new TextEncoder().encode("nao e um envelope de verdade")));
@@ -117,7 +117,7 @@ describe("POST /submissions", () => {
     expect(f.admit).not.toHaveBeenCalled();
   });
 
-  it("recusa_versao_de_chave_desatualizada_com_409_e_diz_a_versao_atual", async () => {
+  it("rejects_stale_key_version_with_409_and_reports_the_current_version", async () => {
     const f = makeDeps();
     const r = await post(f, submissionBody({}, makeEnvelopeBytes({ version: 1 }).bytes));
     expect(r.status).toBe(409);
@@ -126,14 +126,14 @@ describe("POST /submissions", () => {
     expect(f.admit).not.toHaveBeenCalled();
   });
 
-  it("recusa_envelope_de_outra_redacao_ou_categoria_com_422", async () => {
+  it("rejects_envelope_from_another_newsroom_or_category_with_422", async () => {
     const f = makeDeps();
     expect(code(await post(f, submissionBody({}, makeEnvelopeBytes({ newsroom: "outra.eth" }).bytes)))).toBe("envelope_mismatch");
     expect(code(await post(f, submissionBody({ category: "corrupcao" }, makeEnvelopeBytes({ category: "saude" }).bytes)))).toBe("envelope_mismatch");
     expect(f.admit).not.toHaveBeenCalled();
   });
 
-  it("recusa_hash_de_conteudo_adulterado_com_422", async () => {
+  it("rejects_tampered_content_hash_with_422", async () => {
     const f = makeDeps();
     const { envelope } = makeEnvelopeBytes();
     const tampered = new Uint8Array(envelope.ciphertext);
@@ -144,7 +144,7 @@ describe("POST /submissions", () => {
     expect(code(r)).toBe("invalid_envelope");
   });
 
-  it("recusa_epoca_diferente_da_corrente_com_409", async () => {
+  it("rejects_epoch_different_from_current_with_409", async () => {
     const f = makeDeps();
     const r = await post(f, submissionBody({ epoch: EPOCH - 1 }));
     expect(r.status).toBe(409);
@@ -152,7 +152,7 @@ describe("POST /submissions", () => {
     expect(f.admit).not.toHaveBeenCalled();
   });
 
-  it("recusa_categoria_fora_da_politica_e_tamanho_acima_do_maximo_com_422", async () => {
+  it("rejects_category_outside_policy_and_size_above_maximum_with_422", async () => {
     const f = makeDeps();
     const outside = await post(f, submissionBody({ category: "obras" }, makeEnvelopeBytes({ category: "obras" }).bytes));
     expect(outside.status).toBe(422);
@@ -165,18 +165,18 @@ describe("POST /submissions", () => {
     expect(f.admit).not.toHaveBeenCalled();
   });
 
-  it("recusa_corpo_acima_do_maximo_com_413", async () => {
+  it("rejects_body_above_maximum_with_413", async () => {
     const f = makeDeps({ maxBodyBytes: 100 });
     const r = await post(f, submissionBody());
     expect(r.status).toBe(413);
     expect(f.resolveNewsroom).not.toHaveBeenCalled();
   });
 
-  it("recusas_do_portao_viram_status_e_codigo_e_nao_publicam", async () => {
+  it("gate_refusals_become_status_and_code_and_do_not_publish", async () => {
     const table: [string, number][] = [["proof_rejected", 403], ["wrong_action", 403], ["wrong_environment", 403], ["nullifier_mismatch", 403], ["invalid_nullifier", 400], ["invalid_request", 400], ["limit_reached", 409]];
     for (const [refusal, status] of table) {
       const f = makeDeps();
-      f.admit.mockResolvedValueOnce({ ok: false, code: refusal as never, message: "motivo" });
+      f.admit.mockResolvedValueOnce({ ok: false, code: refusal as never, message: "reason" });
       const r = await post(f, submissionBody());
       expect(r.status, refusal).toBe(status);
       expect(code(r)).toBe(refusal);
@@ -184,9 +184,9 @@ describe("POST /submissions", () => {
     }
   });
 
-  it("se_a_publicacao_falha_devolve_a_reserva_e_responde_502_sem_detalhes_internos", async () => {
+  it("if_publication_fails_releases_the_reservation_and_responds_502_without_internal_details", async () => {
     const f = makeDeps();
-    f.publishSubmission.mockRejectedValueOnce(new Error("RPC 10.0.0.5 caiu: segredo interno"));
+    f.publishSubmission.mockRejectedValueOnce(new Error("RPC 10.0.0.5 went down: internal secret"));
     const r = await post(f, submissionBody());
     expect(r.status).toBe(502);
     expect(code(r)).toBe("publish_failed");
@@ -194,14 +194,14 @@ describe("POST /submissions", () => {
     expect(f.release).toHaveBeenCalledTimes(1);
   });
 
-  it("a_resposta_de_sucesso_nao_expoe_prova_nem_identificadores", async () => {
+  it("the_success_response_exposes_neither_proof_nor_identifiers", async () => {
     const r = await post(makeDeps(), submissionBody());
     for (const forbidden of ["nullifier", "proof", "ab".repeat(30)]) expect(r.body).not.toContain(forbidden);
   });
 });
 
-describe("RNF-11 o relayer não registra IP nem corpo", () => {
-  it("os_logs_so_tem_rota_status_e_codigo", async () => {
+describe("RNF-11 the relayer logs neither IP nor body", () => {
+  it("logs_contain_only_route_status_and_code", async () => {
     const f = makeDeps();
     const app = createRelayerApp(f.deps);
     await app.handle(req("POST", "/submissions", { body: submissionBody({ category: "SEGREDO-NO-CORPO" }), headers: { "x-forwarded-for": "203.0.113.9", "user-agent": "NavegadorDaFonte/1.0" } }));
@@ -214,7 +214,7 @@ describe("RNF-11 o relayer não registra IP nem corpo", () => {
 });
 
 describe("CORS", () => {
-  it("preflight_de_origem_permitida_devolve_204_com_os_cabecalhos", async () => {
+  it("allowed_origin_preflight_returns_204_with_headers", async () => {
     const r = await createRelayerApp(makeDeps().deps).handle(req("OPTIONS", "/submissions", { headers: { origin: "https://app.example.org" } }));
     expect(r.status).toBe(204);
     expect(r.headers["access-control-allow-origin"]).toBe("https://app.example.org");
@@ -222,24 +222,24 @@ describe("CORS", () => {
     expect(r.headers["vary"]).toBe("Origin");
   });
 
-  it("origem_nao_permitida_nao_recebe_cabecalho_de_permissao", async () => {
+  it("disallowed_origin_receives_no_permission_header", async () => {
     const r = await createRelayerApp(makeDeps().deps).handle(req("GET", "/health", { headers: { origin: "https://evil.example.net" } }));
     expect(r.headers["access-control-allow-origin"]).toBeUndefined();
   });
 
-  it("respostas_normais_de_origem_permitida_incluem_o_cabecalho", async () => {
+  it("normal_responses_from_allowed_origin_include_the_header", async () => {
     const r = await createRelayerApp(makeDeps().deps).handle(req("GET", "/health", { headers: { origin: "https://app.example.org" } }));
     expect(r.headers["access-control-allow-origin"]).toBe("https://app.example.org");
   });
 
-  it("nunca_usa_curinga", async () => {
+  it("never_uses_a_wildcard", async () => {
     const r = await createRelayerApp(makeDeps({ allowedOrigins: ["*"] }).deps).handle(req("GET", "/health", { headers: { origin: "https://qualquer.example.org" } }));
     expect(r.headers["access-control-allow-origin"]).toBeUndefined();
   });
 });
 
-describe("erros inesperados", () => {
-  it("excecao_vira_500_sem_detalhes_e_o_log_so_tem_rota_e_status", async () => {
+describe("unexpected errors", () => {
+  it("exception_becomes_500_without_details_and_the_log_has_only_route_and_status", async () => {
     const f = makeDeps();
     f.resolveNewsroom.mockRejectedValueOnce(new Error("boom: senha=abc123 em 10.1.1.1"));
     const r = await createRelayerApp(f.deps).handle(req("GET", `/rp-context?newsroom=${NEWSROOM}`));

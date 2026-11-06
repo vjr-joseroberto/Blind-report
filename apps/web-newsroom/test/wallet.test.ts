@@ -4,47 +4,47 @@ import { fakeWallet } from "./fake-provider.ts";
 
 const RABDI = { chainId: "0x76edaf" as const, chainName: "Rabdi", nativeCurrency: { name: "Golem", symbol: "tGLM", decimals: 18 }, rpcUrls: ["https://rpc.example.org/x"], blockExplorerUrls: ["https://rabdi.explorer.arkiv.network"] };
 
-describe("conexão da carteira", () => {
-  it("conecta_e_le_o_endereco", async () => {
+describe("wallet connection", () => {
+  it("connects_and_reads_the_address", async () => {
     const w = fakeWallet();
     expect(await createWallet(w.provider).connect()).toBe(w.state.account.address);
   });
 
-  it("recusa_do_usuario_vira_mensagem_clara", async () => {
+  it("user_rejection_becomes_a_clear_message", async () => {
     const w = fakeWallet({ reject: ["eth_requestAccounts"] });
-    await expect(createWallet(w.provider).connect()).rejects.toMatchObject({ code: "user_rejected", message: expect.stringMatching(/recusou/i) });
+    await expect(createWallet(w.provider).connect()).rejects.toMatchObject({ code: "user_rejected", message: expect.stringMatching(/rejected/i) });
   });
 
-  it("sem_carteira_instalada_mostra_orientacao", () => {
+  it("without_a_wallet_installed_shows_guidance", () => {
     expect(() => pickProvider([])).toThrow(WalletError);
     try {
       pickProvider([]);
     } catch (e) {
-      expect(e).toMatchObject({ code: "no_wallet", message: expect.stringMatching(/instale|MetaMask/i) });
+      expect(e).toMatchObject({ code: "no_wallet", message: expect.stringMatching(/install|MetaMask/i) });
     }
   });
 
-  it("escolhe_o_primeiro_provedor_descoberto", () => {
+  it("chooses_the_first_discovered_provider", () => {
     const a = fakeWallet().provider;
     const b = fakeWallet().provider;
     expect(pickProvider([a, b])).toBe(a);
   });
 });
 
-describe("troca de rede", () => {
-  it("nao_troca_se_ja_esta_na_rede_certa", async () => {
+describe("network switching", () => {
+  it("does_not_switch_if_already_on_the_right_network", async () => {
     const w = fakeWallet({ chainId: "0xaa36a7" });
     await createWallet(w.provider).ensureChain(SEPOLIA_SPEC);
     expect(w.calls.map((c) => c.method)).toEqual(["eth_chainId"]);
   });
 
-  it("pede_a_troca_para_sepolia", async () => {
+  it("asks_to_switch_to_sepolia", async () => {
     const w = fakeWallet({ chainId: "0x1" });
     await createWallet(w.provider).ensureChain(SEPOLIA_SPEC);
     expect(w.state.chainId).toBe("0xaa36a7");
   });
 
-  it("adiciona_a_rede_quando_a_carteira_nao_a_conhece_e_depois_troca", async () => {
+  it("adds_the_network_when_the_wallet_does_not_know_it_and_then_switches", async () => {
     const w = fakeWallet({ chainId: "0xaa36a7" });
     await createWallet(w.provider).ensureChain(RABDI);
     expect(w.calls.map((c) => c.method)).toEqual(["eth_chainId", "wallet_switchEthereumChain", "wallet_addEthereumChain", "wallet_switchEthereumChain"]);
@@ -52,31 +52,31 @@ describe("troca de rede", () => {
     expect((w.calls[2]!.params as any[])[0]).toMatchObject({ chainId: "0x76edaf", chainName: "Rabdi", nativeCurrency: { symbol: "tGLM" } });
   });
 
-  it("recusa_ao_trocar_de_rede_vira_mensagem_clara", async () => {
+  it("rejection_when_switching_network_becomes_a_clear_message", async () => {
     const w = fakeWallet({ reject: ["wallet_switchEthereumChain"] });
     await expect(createWallet(w.provider).ensureChain(SEPOLIA_SPEC)).rejects.toMatchObject({ code: "user_rejected" });
   });
 
-  it("monta_a_especificacao_da_rede_a_partir_de_uma_cadeia_do_viem", () => {
+  it("builds_the_network_spec_from_a_viem_chain", () => {
     const spec = chainSpecFromViem({ id: 7794095, name: "Rabdi", nativeCurrency: { name: "Golem", symbol: "tGLM", decimals: 18 }, rpcUrls: { default: { http: ["https://rpc.example.org/x"] } }, blockExplorers: { default: { url: "https://rabdi.explorer.arkiv.network" } } });
     expect(spec).toEqual(RABDI);
   });
 });
 
-describe("assinatura e eventos", () => {
-  it("assina_a_mensagem_e_devolve_uma_assinatura_verificavel", async () => {
+describe("signing and events", () => {
+  it("signs_the_message_and_returns_a_verifiable_signature", async () => {
     const w = fakeWallet();
     const wallet = createWallet(w.provider);
     const sig = await wallet.signMessage(w.state.account.address, "olá mundo");
     expect(sig).toBe(await w.state.account.signMessage({ message: "olá mundo" }));
   });
 
-  it("recusa_na_assinatura_vira_mensagem_clara", async () => {
+  it("rejection_when_signing_becomes_a_clear_message", async () => {
     const w = fakeWallet({ reject: ["personal_sign"] });
     await expect(createWallet(w.provider).signMessage(w.state.account.address, "x")).rejects.toMatchObject({ code: "user_rejected" });
   });
 
-  it("avisa_troca_de_conta_e_de_rede_e_para_de_observar", () => {
+  it("reports_account_and_network_changes_and_stops_watching", () => {
     const w = fakeWallet();
     const seen: unknown[] = [];
     const stop = createWallet(w.provider).watch({ onAccounts: (a) => seen.push(["a", a]), onChain: (c) => seen.push(["c", c]) });
@@ -89,8 +89,8 @@ describe("assinatura e eventos", () => {
   });
 });
 
-describe("provedor que garante a rede antes de enviar", () => {
-  it("troca_de_rede_ao_perguntar_a_rede_e_ao_enviar_e_informa_a_transacao", async () => {
+describe("provider that guarantees the network before sending", () => {
+  it("switches_network_when_asking_for_the_network_and_when_sending_and_reports_the_transaction", async () => {
     const w = fakeWallet({ chainId: "0x1" });
     const txs: unknown[] = [];
     const p = withChain(w.provider, createWallet(w.provider), SEPOLIA_SPEC, (t) => txs.push(t));
@@ -100,14 +100,14 @@ describe("provedor que garante a rede antes de enviar", () => {
     expect(txs).toEqual([{ hash, chainId: "0xaa36a7" }]);
   });
 
-  it("outros_metodos_passam_direto", async () => {
+  it("other_methods_pass_through", async () => {
     const w = fakeWallet({ chainId: "0x1" });
     const p = withChain(w.provider, createWallet(w.provider), SEPOLIA_SPEC);
     await p.request({ method: "eth_accounts" });
     expect(w.state.chainId).toBe("0x1");
   });
 
-  it("recusa_do_usuario_no_envio_sobe_como_erro_claro", async () => {
+  it("user_rejection_when_sending_rises_as_a_clear_error", async () => {
     const w = fakeWallet({ reject: ["eth_sendTransaction"], chainId: "0xaa36a7" });
     const p = withChain(w.provider, createWallet(w.provider), SEPOLIA_SPEC);
     await expect(p.request({ method: "eth_sendTransaction", params: [{}] })).rejects.toMatchObject({ code: "user_rejected" });

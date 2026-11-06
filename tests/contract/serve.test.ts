@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-// @ts-expect-error módulo JavaScript
+// @ts-expect-error JavaScript module
 import { createStaticServer } from "../../scripts/serve.mjs";
 
 let url = "";
@@ -20,8 +20,8 @@ beforeAll(async () => {
 });
 afterAll(() => close());
 
-describe("servidor estático das telas", () => {
-  it("serve_o_index_com_csp_em_cabecalho_e_sem_cache", async () => {
+describe("static server for the screens", () => {
+  it("serves_the_index_with_csp_in_the_header_and_without_cache", async () => {
     const r = await fetch(url);
     expect(r.status).toBe(200);
     expect(r.headers.get("content-security-policy")).toBe("default-src 'self'; frame-ancestors 'none'");
@@ -29,11 +29,11 @@ describe("servidor estático das telas", () => {
     expect(r.headers.get("cache-control")).toBe("no-store");
   });
 
-  it("serve_js_com_o_tipo_certo", async () => {
+  it("serves_js_with_the_correct_type", async () => {
     expect((await fetch(`${url}/app.js`)).headers.get("content-type")).toContain("javascript");
   });
 
-  it("recusa_saida_da_pasta_e_tipos_desconhecidos", async () => {
+  it("refuses_directory_escape_and_unknown_types", async () => {
     expect((await fetch(`${url}/..%2F..%2Fetc%2Fpasswd`)).status).toBeGreaterThanOrEqual(403);
     expect((await fetch(`${url}/segredo.txt`)).status).toBe(404);
     expect((await fetch(`${url}/nao-existe.js`)).status).toBe(404);

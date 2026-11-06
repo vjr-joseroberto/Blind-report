@@ -8,28 +8,28 @@ const NULLIFIER = "0x" + "ab".repeat(30);
 const ACTION = "submit:investiga.eth:202611";
 
 function contract(label: string, make: () => NullifierStore) {
-  describe(`armazém de nullifiers: ${label}`, () => {
-    it("a_primeira_reivindicacao_vence_e_a_segunda_perde", async () => {
+  describe(`nullifier store: ${label}`, () => {
+    it("the_first_claim_wins_and_the_second_loses", async () => {
       const s = make();
       expect(await s.claim("k1")).toBe(true);
       expect(await s.claim("k1")).toBe(false);
       expect(await s.claim("k2")).toBe(true);
     });
 
-    it("liberar_permite_reivindicar_de_novo", async () => {
+    it("releasing_allows_claiming_again", async () => {
       const s = make();
       await s.claim("k1");
       await s.release("k1");
       expect(await s.claim("k1")).toBe(true);
     });
 
-    it("duas_reivindicacoes_simultaneas_so_uma_vence", async () => {
+    it("two_simultaneous_claims_only_one_wins", async () => {
       const s = make();
       const r = await Promise.all([s.claim("k"), s.claim("k"), s.claim("k")]);
       expect(r.filter(Boolean)).toHaveLength(1);
     });
 
-    it("has_reflete_o_estado", async () => {
+    it("has_reflects_the_state", async () => {
       const s = make();
       expect(await s.has("k")).toBe(false);
       await s.claim("k");
@@ -38,40 +38,40 @@ function contract(label: string, make: () => NullifierStore) {
   });
 }
 
-contract("em memória", () => createMemoryNullifierStore());
-contract("em arquivo", () => createFileNullifierStore(join(mkdtempSync(join(tmpdir(), "sw-gate-")), "claims.jsonl")));
+contract("in memory", () => createMemoryNullifierStore());
+contract("on file", () => createFileNullifierStore(join(mkdtempSync(join(tmpdir(), "sw-gate-")), "claims.jsonl")));
 
-describe("usedKey (chave do par nullifier+ação)", () => {
-  it("e_um_hash_e_nao_contem_o_nullifier_nem_a_acao", () => {
+describe("usedKey (key for the nullifier+action pair)", () => {
+  it("is_a_hash_and_contains_neither_the_nullifier_nor_the_action", () => {
     const k = usedKey(NULLIFIER, ACTION);
     expect(k).toMatch(/^[0-9a-f]{64}$/);
     expect(k).not.toContain("abab");
     expect(k).not.toContain("submit");
   });
 
-  it("muda_com_a_acao_e_com_o_nullifier_e_e_estavel", () => {
+  it("changes_with_the_action_and_the_nullifier_and_is_stable", () => {
     expect(usedKey(NULLIFIER, ACTION)).toBe(usedKey(NULLIFIER, ACTION));
     expect(usedKey(NULLIFIER, ACTION)).not.toBe(usedKey(NULLIFIER, "submit:outra.eth:202611"));
     expect(usedKey(NULLIFIER, ACTION)).not.toBe(usedKey("0x" + "cd".repeat(30), ACTION));
   });
 
-  it("normaliza_o_formato_do_nullifier", () => {
+  it("normalizes_the_nullifier_format", () => {
     expect(usedKey("0x10", ACTION)).toBe(usedKey("0x0010", ACTION));
   });
 
-  it("recusa_nullifier_malformado", () => {
+  it("refuses_malformed_nullifier", () => {
     expect(() => usedKey("zzz", ACTION)).toThrow();
   });
 });
 
-describe("armazém em arquivo (RN-05 e persistência)", () => {
-  it("persiste_entre_instancias", async () => {
+describe("file store (RN-05 and persistence)", () => {
+  it("persists_across_instances", async () => {
     const path = join(mkdtempSync(join(tmpdir(), "sw-gate-")), "claims.jsonl");
     await createFileNullifierStore(path).claim("persistente");
     expect(await createFileNullifierStore(path).claim("persistente")).toBe(false);
   });
 
-  it("o_arquivo_guarda_apenas_hashes", async () => {
+  it("the_file_stores_only_hashes", async () => {
     const path = join(mkdtempSync(join(tmpdir(), "sw-gate-")), "claims.jsonl");
     const s = createFileNullifierStore(path);
     await s.claim(usedKey(NULLIFIER, ACTION));
@@ -81,7 +81,7 @@ describe("armazém em arquivo (RN-05 e persistência)", () => {
     expect(content.trim().split("\n").every((l) => /^[0-9a-f]{64}$/.test(l.trim()))).toBe(true);
   });
 
-  it("a_liberacao_e_persistida", async () => {
+  it("release_is_persisted", async () => {
     const path = join(mkdtempSync(join(tmpdir(), "sw-gate-")), "claims.jsonl");
     const a = createFileNullifierStore(path);
     await a.claim("x");
@@ -89,7 +89,7 @@ describe("armazém em arquivo (RN-05 e persistência)", () => {
     expect(await createFileNullifierStore(path).claim("x")).toBe(true);
   });
 
-  it("ignora_linhas_vazias_e_recusa_chaves_com_quebra_de_linha", async () => {
+  it("ignores_empty_lines_and_refuses_keys_with_line_breaks", async () => {
     const path = join(mkdtempSync(join(tmpdir(), "sw-gate-")), "claims.jsonl");
     writeFileSync(path, "\n\nabc\n\n");
     const s = createFileNullifierStore(path);

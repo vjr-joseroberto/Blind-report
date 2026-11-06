@@ -16,7 +16,7 @@ button { font: inherit; padding: .4rem .8rem; margin: .5rem .5rem .5rem 0; }
 code, .link { word-break: break-all; }
 footer { margin-top: 2rem; border-top: 1px solid var(--muted); padding-top: .5rem; }
 
-/* Painel por papel */
+/* Panel by role */
 .card { border: 1px solid var(--muted); border-radius: .5rem; padding: .75rem 1rem; margin: .75rem 0; }
 .badge { display: inline-block; border: 1px solid var(--accent); color: var(--accent); border-radius: 1rem; padding: 0 .6rem; font-size: .85rem; margin-left: .5rem; }
 .badge.visitor { border-color: var(--warn); color: var(--warn); }

@@ -4,7 +4,7 @@ import { CryptoError } from "./errors.ts";
 import type { Keypair } from "./keys.ts";
 import { sodium } from "./sodium.ts";
 
-/** OWASP (2023) para PBKDF2-HMAC-SHA256. O WebCrypto existe no navegador e no Node, sem dependência extra. */
+/** OWASP (2023) for PBKDF2-HMAC-SHA256. WebCrypto exists in the browser and in Node, with no extra dependency. */
 export const DEFAULT_PBKDF2_ITERATIONS = 600_000;
 const MIN_PASSWORD = 8;
 const MAX_ITERATIONS = 10_000_000;
@@ -15,9 +15,9 @@ async function deriveKey(password: string, salt: Uint8Array, iterations: number)
   return new Uint8Array(bits);
 }
 
-/** Protege dados com uma senha: PBKDF2 para derivar a chave e XSalsa20-Poly1305 (secretbox) para cifrar. */
+/** Protects data with a password: PBKDF2 to derive the key and XSalsa20-Poly1305 (secretbox) to encrypt. */
 export async function lockWithPassword(data: Uint8Array, password: string, opts: { iterations?: number } & Partial<Deps> = {}): Promise<string> {
-  if (password.length < MIN_PASSWORD) throw new CryptoError("input", `A senha deve ter ao menos ${MIN_PASSWORD} caracteres.`);
+  if (password.length < MIN_PASSWORD) throw new CryptoError("input", `The password must have at least ${MIN_PASSWORD} characters.`);
   const iterations = opts.iterations ?? DEFAULT_PBKDF2_ITERATIONS;
   const d = withDefaults(opts);
   const salt = d.random(16);
@@ -38,20 +38,20 @@ export async function unlockWithPassword(blob: string, password: string): Promis
     ct = fromBase64Url(raw.ct);
     if (nonce.length !== sodium.crypto_secretbox_NONCEBYTES) throw new Error();
   } catch {
-    throw new CryptoError("format", "O arquivo protegido está malformado.");
+    throw new CryptoError("format", "The protected file is malformed.");
   }
   const key = await deriveKey(password, salt, raw.iter);
   try {
     return sodium.crypto_secretbox_open_easy(ct, nonce, key);
   } catch {
-    throw new CryptoError("decrypt", "Senha incorreta ou arquivo adulterado.");
+    throw new CryptoError("decrypt", "Incorrect password or tampered file.");
   }
 }
 
-/** Cifra dados para o dono de uma chave pública (caixa selada anônima). */
+/** Encrypts data for the owner of a public key (anonymous sealed box). */
 export function sealTo(publicKey: Uint8Array, data: Uint8Array): Uint8Array {
-  if (publicKey.length !== sodium.crypto_box_PUBLICKEYBYTES) throw new CryptoError("key", "Chave pública inválida.");
-  if (data.length === 0) throw new CryptoError("input", "Não há o que cifrar.");
+  if (publicKey.length !== sodium.crypto_box_PUBLICKEYBYTES) throw new CryptoError("key", "Invalid public key.");
+  if (data.length === 0) throw new CryptoError("input", "There is nothing to encrypt.");
   return sodium.crypto_box_seal(data, publicKey);
 }
 
@@ -59,6 +59,6 @@ export function openSealed(sealed: Uint8Array, keypair: Keypair): Uint8Array {
   try {
     return sodium.crypto_box_seal_open(sealed, keypair.publicKey, keypair.privateKey);
   } catch {
-    throw new CryptoError("decrypt", "Não foi possível abrir: chave errada ou conteúdo adulterado.");
+    throw new CryptoError("decrypt", "Could not open: wrong key or tampered content.");
   }
 }

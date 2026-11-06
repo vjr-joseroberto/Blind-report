@@ -1,7 +1,7 @@
 import type { Receipt } from "@safe-whistle/core";
 import type { NewsroomInfo } from "@safe-whistle/ens-client";
 
-/** Resultado do IDKit, repassado sem alterações ao relayer (que o confere com a API do World). */
+/** IDKit result, forwarded unchanged to the relayer (which checks it with the World API). */
 export type IdKitPayload = { action: string; environment: string; responses: { nullifier: string; [k: string]: unknown }[]; [k: string]: unknown };
 
 export type ProofRequest = {
@@ -10,11 +10,11 @@ export type ProofRequest = {
   action: string;
   rpContext: unknown;
 };
-/** Na tela é o IDKit sem interface; nos testes é um dublê. Lança `ProofError` se a prova não sair. */
+/** On screen it is IDKit without a UI; in tests it is a double. Throws `ProofError` if the proof does not come out. */
 export type ProofProvider = (req: ProofRequest) => Promise<IdKitPayload>;
 
 export type SourceDeps = {
-  /** Deve ser um `fetch` já protegido pela política de rede (`guardedFetch`). */
+  /** Must be a `fetch` already protected by the network policy (`guardedFetch`). */
   fetch: typeof fetch;
   relayerUrl: string;
   reader: { resolveNewsroom(name: string): Promise<NewsroomInfo>; journalistOwner(name: string): Promise<`0x${string}` | null> };
@@ -24,5 +24,5 @@ export type SourceDeps = {
   now: () => Date;
 };
 
-/** Recibo guardado só no dispositivo da fonte. */
+/** Receipt stored only on the source's device. */
 export type SourceReceipt = Receipt & { newsroom: string; key: string };

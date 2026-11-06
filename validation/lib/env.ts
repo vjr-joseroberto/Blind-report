@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-/** Lê o .env da raiz (sem imprimir nada). */
+/** Reads the root .env (without printing anything). */
 export function loadEnv(): Record<string, string> {
   const env: Record<string, string> = {};
   const path = new URL("../../.env", import.meta.url).pathname;

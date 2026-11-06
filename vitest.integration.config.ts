@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 
-// Integração: exige os nós locais (npm run nodes:up). Rede: somente localhost.
+// Integration: requires the local nodes (npm run nodes:up). Network: localhost only.
 export default defineConfig({
   test: {
     environment: "node",

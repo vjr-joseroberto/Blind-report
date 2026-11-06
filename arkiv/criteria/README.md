@@ -1,16 +1,16 @@
-# Respostas por critério (trilha Build on Arkiv, do zero)
+# Answers by criterion (Build on Arkiv track, from scratch)
 
-A trilha pede **um arquivo de resposta por critério**. A lista oficial de critérios de julgamento **não está nos documentos do projeto e não foi encontrada em busca pública**; por isso estes arquivos respondem, um a um, às **exigências que a descrição da trilha traz** (o que o app precisa fazer e entregar).
+The track asks for **one answer file per criterion**. The official list of judging criteria **is not in the project documents and was not found in a public search**; therefore these files answer, one by one, the **requirements that the track description brings** (what the app needs to do and deliver).
 
-> **Antes de enviar:** compare com a lista oficial da página da trilha. Se houver critérios diferentes, renomeie ou divida estes arquivos para que haja um por critério, mantendo o conteúdo como evidência.
+> **Before submitting:** compare with the official list on the track page. If there are different criteria, rename or split these files so that there is one per criterion, keeping the content as evidence.
 
-| Arquivo | Exigência respondida |
+| File | Requirement answered |
 |---|---|
-| [`01-escreve-na-testnet.md`](01-escreve-na-testnet.md) | O app escreve na testnet do Arkiv |
-| [`02-feature-que-le-do-arkiv.md`](02-feature-que-le-do-arkiv.md) | Ao menos uma funcionalidade lê do Arkiv |
-| [`03-uso-real-do-sdk.md`](03-uso-real-do-sdk.md) | O SDK é usado de verdade ("SDK sem uso não conta") |
-| [`04-feito-do-zero.md`](04-feito-do-zero.md) | Projeto novo, feito no evento (**a confirmar**) |
-| [`05-readme-carteiras-e-query.md`](05-readme-carteiras-e-query.md) | README com carteiras escritoras e uma consulta executável |
-| [`06-licenca-e-declaracao-de-ia.md`](06-licenca-e-declaracao-de-ia.md) | Licença aberta e declaração de uso de IA |
+| [`01-writes-to-testnet.md`](01-writes-to-testnet.md) | The app writes to the Arkiv testnet |
+| [`02-feature-reads-from-arkiv.md`](02-feature-reads-from-arkiv.md) | At least one feature reads from Arkiv |
+| [`03-real-sdk-usage.md`](03-real-sdk-usage.md) | The SDK is used for real ("an unused SDK does not count") |
+| [`04-built-from-scratch.md`](04-built-from-scratch.md) | New project, made at the event (**to be confirmed**) |
+| [`05-readme-wallets-and-query.md`](05-readme-wallets-and-query.md) | README with writing wallets and an executable query |
+| [`06-license-and-ai-declaration.md`](06-license-and-ai-declaration.md) | Open license and AI usage declaration |
 
-Complementam: [`../schema.md`](../schema.md) e [`../friction.md`](../friction.md).
+Complemented by: [`../schema.md`](../schema.md) and [`../friction.md`](../friction.md).

@@ -1,5 +1,5 @@
-// Sessão do painel: conectar a carteira, assinar a mensagem de entrada e, depois, escolher a redação e descobrir o papel.
-// Só em memória. Conectar e escolher a redação são passos separados: quem ainda não tem redação conecta e cadastra uma.
+// Panel session: connect the wallet, sign the login message and then choose the newsroom and discover the role.
+// In memory only. Connecting and choosing the newsroom are separate steps: whoever does not have a newsroom yet connects and registers one.
 import { detectRole, type Access, type createLogin } from "@safe-whistle/newsroom-client";
 import type { Address } from "viem";
 import { WalletError, type ChainSpec, type Wallet } from "./wallet.ts";
@@ -9,7 +9,7 @@ type Reader = Parameters<typeof detectRole>[0]["reader"];
 
 export type Target = { newsroom: string; journalist?: string };
 export type SessionState = {
-  /** `connected`: carteira provada, ainda sem redação escolhida. */
+  /** `connected`: wallet proven, no newsroom chosen yet. */
   status: "idle" | "connecting" | "signing" | "connected" | "ready" | "error";
   address?: Address;
   access?: Access;
@@ -18,10 +18,10 @@ export type SessionState = {
 };
 
 const LOGIN_MESSAGES: Record<string, string> = {
-  expired: "O pedido de assinatura expirou. Entre de novo.",
-  reused: "Este pedido de assinatura já foi usado. Entre de novo.",
-  unknown: "Pedido de assinatura desconhecido. Entre de novo.",
-  bad_signature: "A assinatura não confere com a carteira conectada. Entre de novo.",
+  expired: "The signing request expired. Sign in again.",
+  reused: "This signing request has already been used. Sign in again.",
+  unknown: "Unknown signing request. Sign in again.",
+  bad_signature: "The signature does not match the connected wallet. Sign in again.",
 };
 
 export function createSession(deps: { wallet: Wallet; login: Login; reader: Reader; domain: string; chain: ChainSpec }) {
@@ -37,9 +37,9 @@ export function createSession(deps: { wallet: Wallet; login: Login; reader: Read
     stopWatching = undefined;
   };
 
-  const NETWORK_ERROR = { code: "network", message: "Não foi possível consultar o ENS agora. Verifique a conexão e tente de novo." };
+  const NETWORK_ERROR = { code: "network", message: "Could not query ENS right now. Check your connection and try again." };
 
-  /** `keepSession`: numa reavaliação (ex.: depois de cadastrar), falha de rede NÃO derruba a sessão nem o painel. */
+  /** `keepSession`: on a re-evaluation (e.g. after registering), a network failure does NOT bring down the session or the panel. */
   async function evaluate(address: Address, target: Target, keepSession = false) {
     try {
       set({ status: "ready", address, target, access: await detectRole({ address, newsroom: target.newsroom, journalist: target.journalist, reader: deps.reader }) });
@@ -58,7 +58,7 @@ export function createSession(deps: { wallet: Wallet; login: Login; reader: Read
       return () => listeners.delete(fn);
     },
 
-    /** Conecta a carteira, troca de rede e prova o controle do endereço com uma assinatura. Não exige redação. */
+    /** Connects the wallet, switches networks and proves control of the address with a signature. Does not require a newsroom. */
     async connect(): Promise<void> {
       stop();
       set({ status: "connecting" });
@@ -70,37 +70,37 @@ export function createSession(deps: { wallet: Wallet; login: Login; reader: Read
         const signature = await deps.wallet.signMessage(address, challenge.message);
         const verified = await deps.login.verify(challenge.nonce, signature);
         if (!verified.ok) {
-          set({ status: "error", error: { code: "bad_login", message: LOGIN_MESSAGES[verified.reason] ?? "Não foi possível confirmar a assinatura." } });
+          set({ status: "error", error: { code: "bad_login", message: LOGIN_MESSAGES[verified.reason] ?? "Could not confirm the signature." } });
           return;
         }
         stopWatching = deps.wallet.watch({
           onAccounts: (accounts) => {
             if (accounts[0]?.toLowerCase() === address.toLowerCase()) return;
             stop();
-            set({ status: "idle", error: { code: "account_changed", message: "A conta mudou na carteira. Entre de novo para reavaliar o seu papel." } });
+            set({ status: "idle", error: { code: "account_changed", message: "The account changed in the wallet. Sign in again to re-evaluate your role." } });
           },
           onChain: () => {},
         });
         set({ status: "connected", address });
       } catch (e) {
         if (e instanceof WalletError) set({ status: "error", error: { code: e.code, message: e.message } });
-        else set({ status: "error", error: { code: "unexpected", message: "Algo deu errado ao conectar a carteira. Tente de novo." } });
+        else set({ status: "error", error: { code: "unexpected", message: "Something went wrong connecting the wallet. Try again." } });
       }
     },
 
-    /** Escolhe (ou troca) a redação, sem assinar de novo. Se ela não existe, o resultado oferece cadastrá-la. */
+    /** Chooses (or switches) the newsroom, without signing again. If it does not exist, the result offers to register it. */
     async choose(target: Target): Promise<void> {
       if (!state.address || (state.status !== "connected" && state.status !== "ready")) return;
       await evaluate(state.address, target);
     },
 
-    /** Volta à escolha da redação (mantém a carteira conectada). */
+    /** Goes back to choosing the newsroom (keeps the wallet connected). */
     leaveNewsroom(): void {
       if (!state.address || (state.status !== "connected" && state.status !== "ready")) return;
       set({ status: "connected", address: state.address });
     },
 
-    /** Reavalia o papel (por exemplo, depois de cadastrar a redação). */
+    /** Re-evaluates the role (for example, after registering the newsroom). */
     async refresh(): Promise<void> {
       if (state.status !== "ready" || !state.address || !state.target) return;
       await evaluate(state.address, state.target, true);

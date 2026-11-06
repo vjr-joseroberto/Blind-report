@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 const SRC = join(import.meta.dirname, "../src");
 const FORBIDDEN = [/\bfetch\s*\(/, /node:(http|https|net|dns|tls|dgram|child_process)/, /XMLHttpRequest/, /WebSocket/, /@safe-whistle\/network-policy/];
 
-describe("RNF-05 o pacote crypto não faz rede", () => {
-  it("nenhum_arquivo_do_pacote_usa_api_de_rede", () => {
+describe("RNF-05 the crypto package does not use the network", () => {
+  it("no_file_in_the_package_uses_a_network_api", () => {
     const offenders: string[] = [];
     for (const file of readdirSync(SRC)) {
       const content = readFileSync(join(SRC, file), "utf8");

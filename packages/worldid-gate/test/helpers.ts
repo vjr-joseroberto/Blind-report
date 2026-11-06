@@ -2,7 +2,7 @@ import { actionFor } from "@safe-whistle/core";
 import { createHash } from "node:crypto";
 import type { IdKitPayload } from "../src/index.ts";
 
-/** Imita a propriedade central do protocolo: o nullifier depende da pessoa E da ação. */
+/** Mimics the protocol's central property: the nullifier depends on the person AND the action. */
 export const nullifierOf = (person: string, action: string) => "0x" + createHash("sha256").update(`${person}|${action}`).digest("hex").slice(0, 60);
 
 export function payload(person: string, newsroom: string, epoch: number, over: Record<string, unknown> = {}): IdKitPayload {

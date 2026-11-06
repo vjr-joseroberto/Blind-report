@@ -1,6 +1,6 @@
 export type GateErrorCode = "config";
 
-/** Configuração inválida do portão (chave de assinatura, rp_id...). A mensagem nunca inclui o valor recebido. */
+/** Invalid gate configuration (signing key, rp_id...). The message never includes the value received. */
 export class GateError extends Error {
   constructor(public readonly code: GateErrorCode, message: string) {
     super(message);

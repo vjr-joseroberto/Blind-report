@@ -1,5 +1,5 @@
-// Ambiente dos testes de ponta a ponta: fork da Sepolia + nó Arkiv local + relayer (processo filho, World SIMULADO).
-// Tudo em localhost. Nenhum navegador. Nenhuma rede de anonimato.
+// Environment for the end-to-end tests: Sepolia fork + local Arkiv node + relayer (child process, SIMULATED World).
+// Everything on localhost. No browser. No anonymity network.
 import { createPublicClient as createArkivPublic, createWalletClient as createArkivWallet } from "@arkiv-network/sdk";
 import { localhost } from "@arkiv-network/sdk/chains";
 import { createSdkBackend, createStore } from "@safe-whistle/arkiv-store";
@@ -19,12 +19,12 @@ import { sepolia } from "viem/chains";
 export const FORK = "http://127.0.0.1:8545";
 export const ARKIV = "http://127.0.0.1:8546";
 export const RELAYER_URL = "http://127.0.0.1:18787";
-const FUNDER = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as Hex; // conta pré-financiada do nó Arkiv de desenvolvimento
+const FUNDER = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as Hex; // pre-funded account of the development Arkiv node
 const ROOT = resolve(import.meta.dirname, "../..");
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** Imita a propriedade do protocolo: o nullifier depende da pessoa e da ação. */
+/** Mirrors the protocol property: the nullifier depends on the person and the action. */
 export const nullifierOf = (person: string, action: string) => "0x" + createHash("sha256").update(`${person}|${action}`).digest("hex").slice(0, 60);
 
 export const proofProviderFor = (person: string): ProofProvider => async (req) => ({
@@ -55,7 +55,7 @@ const newPerson = (): Person => {
   return { key, address: privateKeyToAccount(key).address };
 };
 
-/** Cliente da redação (administradora ou jornalista) com gravador de requisições próprio. */
+/** Newsroom client (administrator or journalist) with its own request recorder. */
 export function newsroomSide(person: Person, canAdmin: boolean, authorName?: string) {
   const recorder = createRecorder();
   const policy = sourceNetworkPolicy({ rpcUrl: FORK, relayerUrl: RELAYER_URL, arkivRpcUrl: ARKIV });
@@ -73,14 +73,14 @@ export function newsroomSide(person: Person, canAdmin: boolean, authorName?: str
   return { client, recorder };
 }
 
-/** Cliente da fonte: cada pessoa tem o seu, com gravador próprio. `staleOnce` simula um cache de chave antiga. */
+/** Source client: each person has their own, with their own recorder. `staleOnce` simulates an old key cache. */
 export function sourceSide(person: string) {
   const recorder = createRecorder();
   const policy = sourceNetworkPolicy({ rpcUrl: FORK, relayerUrl: RELAYER_URL, arkivRpcUrl: ARKIV });
   const fetchFn = guardedFetch(policy, recorder.fetch);
   const real = createReader({ client: createPublicClient({ chain: sepolia, transport: http(FORK, { fetchFn }) }) as unknown as EnsReadClient });
   let stale: Awaited<ReturnType<typeof real.resolveNewsroom>> | undefined;
-  const store = arkivStore(generatePrivateKey(), fetchFn); // conta descartável: só leitura
+  const store = arkivStore(generatePrivateKey(), fetchFn); // disposable account: read-only
   const client = createSourceClient({
     fetch: fetchFn, relayerUrl: RELAYER_URL, replies: store, submissions: store, proofProvider: proofProviderFor(person), now: () => new Date(),
     reader: { resolveNewsroom: async (n) => { if (stale) { const s = stale; stale = undefined; return s; } return real.resolveNewsroom(n); }, journalistOwner: (n) => real.journalistOwner(n) },
@@ -96,7 +96,7 @@ export async function startWorld() {
   const relayerWallet = newPerson();
   await forkTest.setBalance({ address: owner.address, value: parseEther("100") });
   await forkTest.setBalance({ address: journalist.address, value: parseEther("10") });
-  const stranger = newPerson(); // carteira sem nenhum papel: serve para tentar forjar anotações e respostas
+  const stranger = newPerson(); // wallet with no role: used to try to forge notes and replies
   for (const p of [owner, journalist, relayerWallet, stranger]) await fundOnArkiv(p.key);
 
   const admin = newsroomSide(owner, true);
@@ -125,7 +125,7 @@ export async function startWorld() {
   }
   if (!up) {
     child.kill("SIGTERM");
-    throw new Error(`O relayer não subiu. Saída: ${logs.join("").slice(0, 500)}`);
+    throw new Error(`The relayer did not start. Output: ${logs.join("").slice(0, 500)}`);
   }
 
   return {

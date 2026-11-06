@@ -2,7 +2,7 @@ import { IDKit, proofOfHuman } from "@worldcoin/idkit-core";
 import { ProofError } from "./errors.ts";
 import type { IdKitPayload, ProofProvider } from "./types.ts";
 
-/** Converte o motivo textual do IDKit em um dos três motivos que a tela sabe explicar. */
+/** Converts IDKit's textual reason into one of the three reasons the screen knows how to explain. */
 export function proofErrorFromIdKit(raw: unknown): ProofError {
   const t = String(raw ?? "").toLowerCase();
   if (/timeout|expire/.test(t)) return new ProofError("expired");
@@ -10,7 +10,7 @@ export function proofErrorFromIdKit(raw: unknown): ProofError {
   return new ProofError("denied");
 }
 
-/** Fornecedor real: usa o IDKit sem interface. A tela mostra o link (ou QR) recebido em `onLink`. */
+/** Real provider: uses IDKit without a UI. The screen shows the link (or QR) received in `onLink`. */
 export function createIdKitProofProvider(opts: { onLink: (uri: string) => void; timeoutMs?: number }): ProofProvider {
   return async (req) => {
     const request = await IDKit.request({

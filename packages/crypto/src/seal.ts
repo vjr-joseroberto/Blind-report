@@ -16,18 +16,18 @@ export type SealOptions = {
   plaintext: Uint8Array;
 };
 
-/** Cifra a denúncia para os destinatários da redação e gera o mailbox e o recibo da fonte. */
+/** Encrypts the tip for the newsroom's recipients and generates the mailbox and the source's receipt. */
 export function seal(opts: SealOptions, deps?: Partial<Deps>): { envelope: Envelope; receipt: Receipt } {
   const d = withDefaults(deps);
-  if (opts.recipients.length === 0) throw new CryptoError("recipients", "É preciso ao menos um destinatário.");
+  if (opts.recipients.length === 0) throw new CryptoError("recipients", "At least one recipient is required.");
   if (new Set(opts.recipients.map((r) => r.id)).size !== opts.recipients.length) {
-    throw new CryptoError("recipients", "Destinatários com o mesmo identificador.");
+    throw new CryptoError("recipients", "Recipients with the same identifier.");
   }
   for (const r of opts.recipients) {
-    if (r.publicKey.length !== sodium.crypto_box_PUBLICKEYBYTES) throw new CryptoError("key", `Chave pública inválida para "${r.id}".`);
+    if (r.publicKey.length !== sodium.crypto_box_PUBLICKEYBYTES) throw new CryptoError("key", `Invalid public key for "${r.id}".`);
   }
-  if (opts.plaintext.length === 0) throw new CryptoError("input", "O texto não pode ser vazio.");
-  if (!Number.isInteger(opts.pubkeyVersion) || opts.pubkeyVersion < 1) throw new CryptoError("input", "Versão da chave inválida.");
+  if (opts.plaintext.length === 0) throw new CryptoError("input", "The text cannot be empty.");
+  if (!Number.isInteger(opts.pubkeyVersion) || opts.pubkeyVersion < 1) throw new CryptoError("input", "Invalid key version.");
 
   const contentKey = d.random(sodium.crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
   const nonce = d.random(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);

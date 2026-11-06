@@ -1,4 +1,4 @@
-// Descoberta das redações de uma carteira pelos eventos do registry, contra o fork real da Sepolia.
+// Discovery of a wallet's newsrooms from registry events, against the real Sepolia fork.
 import { beforeAll, describe, expect, it } from "vitest";
 import { createAdmin, createReader, ENSV2_SEPOLIA, findLabelsMintedTo, type LogClient } from "../../src/index.ts";
 import { advance, newWallet, publicClient, uniqueLabel } from "./helpers.ts";
@@ -7,11 +7,11 @@ const policy = { categories: ["saude"], maxBytes: 100_000, attachments: false, e
 
 beforeAll(async () => {
   const code = await publicClient.getCode({ address: ENSV2_SEPOLIA.ethRegistrar });
-  if (!code || code === "0x") throw new Error("Fork da Sepolia indisponível: rode `npm run nodes:up`.");
+  if (!code || code === "0x") throw new Error("Sepolia fork unavailable: run `npm run nodes:up`.");
 });
 
-describe("achar as redações de uma carteira nos eventos do registry", () => {
-  it("o_nome_registrado_pela_carteira_aparece_e_o_de_outra_carteira_nao", async () => {
+describe("finding a wallet's newsrooms in registry events", () => {
+  it("the_name_registered_by_the_wallet_appears_and_another_wallet_one_does_not", async () => {
     const mine = await newWallet();
     const other = await newWallet();
     const label = uniqueLabel();
@@ -25,12 +25,12 @@ describe("achar as redações de uma carteira nos eventos do registry", () => {
     expect(found.labels).toContain(label);
     expect(found.labels).not.toContain(otherLabel);
 
-    // o registrar diz que o nome criado não está mais livre, e que um nome novo está
+    // the registrar says the created name is no longer free, and that a new name is
     const reader = createReader({ client: publicClient });
     expect(await reader.isNameAvailable(`${label}.eth`)).toBe(false);
     expect(await reader.isNameAvailable(`${uniqueLabel()}.eth`)).toBe(true);
 
-    // e a confirmação no ENS bate com o custodiante
+    // and the ENS confirmation matches the custodian
     const info = await createReader({ client: publicClient }).resolveNewsroom(`${label}.eth`);
     expect(info.custodian.toLowerCase()).toBe(mine.address.toLowerCase());
   });

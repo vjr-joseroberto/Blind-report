@@ -9,11 +9,11 @@ export type RecordedRequest = {
 export type Recorder = {
   fetch: typeof fetch;
   requests: RecordedRequest[];
-  /** Hosts contatados, sem repetição, na ordem em que apareceram. */
+  /** Hosts contacted, without repetition, in the order they appeared. */
   hosts(): string[];
-  /** Algum corpo gravado contém este texto? (para provar que um segredo NÃO saiu) */
+  /** Does any recorded body contain this text? (to prove a secret did NOT leave) */
   anyBodyContains(text: string): boolean;
-  /** Algum corpo gravado contém esta sequência de bytes? */
+  /** Does any recorded body contain this byte sequence? */
   anyBodyContainsBytes(bytes: Uint8Array): boolean;
 };
 
@@ -34,7 +34,7 @@ function indexOfBytes(haystack: Uint8Array, needle: Uint8Array): number {
   return -1;
 }
 
-/** Um `fetch` que grava o que foi enviado e repassa para o `fetch` base. Usado nos testes por script. */
+/** A `fetch` that records what was sent and forwards to the base `fetch`. Used in script tests. */
 export function createRecorder(base: typeof fetch = globalThis.fetch): Recorder {
   const requests: RecordedRequest[] = [];
   const recordingFetch: typeof fetch = async (input, init) => {

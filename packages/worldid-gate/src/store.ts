@@ -4,7 +4,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { dirname } from "node:path";
 import type { NullifierStore } from "./types.ts";
 
-/** Chave do par (nullifier, ação): só o hash é guardado, nunca o nullifier nem a ação. Lança se o nullifier for inválido. */
+/** Key for the (nullifier, action) pair: only the hash is stored, never the nullifier nor the action. Throws if the nullifier is invalid. */
 export function usedKey(nullifier: string, action: string): string {
   const canonical = Nullifier.fromHex(nullifier).toCanonicalString();
   return createHash("sha256").update(`${canonical}|${action}`).digest("hex");
@@ -27,12 +27,12 @@ export function createMemoryNullifierStore(): NullifierStore {
   };
 }
 
-/** Armazém persistente: um hash por linha. Um único processo por arquivo. */
+/** Persistent store: one hash per line. A single process per file. */
 export function createFileNullifierStore(path: string): NullifierStore {
   mkdirSync(dirname(path), { recursive: true });
   const used = new Set<string>(existsSync(path) ? readFileSync(path, "utf8").split("\n").map((l) => l.trim()).filter(Boolean) : []);
   const check = (key: string) => {
-    if (key.length === 0 || /[\r\n]/.test(key)) throw new Error("Chave inválida.");
+    if (key.length === 0 || /[\r\n]/.test(key)) throw new Error("Invalid key.");
   };
   return {
     async has(key) {

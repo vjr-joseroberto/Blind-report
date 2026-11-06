@@ -4,19 +4,19 @@ export type Submission = { category: string; sizeBytes: number; hasAttachment: b
 export type SubmissionRefusalCode = "category_not_allowed" | "too_large" | "attachments_not_allowed" | "invalid_size";
 export type SubmissionCheck = { ok: true } | { ok: false; code: SubmissionRefusalCode; message: string };
 
-/** Confere um envio contra a política da redação. */
+/** Checks a submission against the newsroom's policy. */
 export function validateSubmission(policy: NewsroomPolicy, s: Submission): SubmissionCheck {
   if (!Number.isInteger(s.sizeBytes) || s.sizeBytes < 1) {
-    return { ok: false, code: "invalid_size", message: "O tamanho da denúncia é inválido ou está vazio." };
+    return { ok: false, code: "invalid_size", message: "The tip size is invalid or empty." };
   }
   if (!policy.categories.includes(s.category)) {
-    return { ok: false, code: "category_not_allowed", message: `A categoria "${s.category}" não é aceita por esta redação.` };
+    return { ok: false, code: "category_not_allowed", message: `The category "${s.category}" is not accepted by this newsroom.` };
   }
   if (s.hasAttachment && !policy.attachments) {
-    return { ok: false, code: "attachments_not_allowed", message: "Esta redação não aceita anexos." };
+    return { ok: false, code: "attachments_not_allowed", message: "This newsroom does not accept attachments." };
   }
   if (s.sizeBytes > policy.maxBytes) {
-    return { ok: false, code: "too_large", message: `A denúncia excede o tamanho máximo de ${policy.maxBytes} bytes.` };
+    return { ok: false, code: "too_large", message: `The tip exceeds the maximum size of ${policy.maxBytes} bytes.` };
   }
   return { ok: true };
 }

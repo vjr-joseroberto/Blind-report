@@ -14,47 +14,47 @@ const LABEL_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
 const visitor = (newsroom: string, reason: VisitorReason, message: string): Access => ({ role: "visitor", newsroom, reason, message });
 
-/** Descobre o papel da carteira conectada, só com o que o ENS diz. Falha de rede não vira papel: a exceção sobe. */
+/** Discovers the connected wallet's role, only with what ENS says. A network failure does not become a role: the exception propagates. */
 export async function detectRole(a: {
   address: Address;
   newsroom: string;
-  /** Nome de jornalista (`maria` ou `maria.redacao.eth`); só necessário para quem não é o administrador. */
+  /** Journalist name (`maria` or `maria.newsroom.eth`); only needed for non-administrators. */
   journalist?: string;
   reader: { resolveNewsroom(name: string): Promise<Pick<NewsroomInfo, "custodian">>; journalistOwner(name: string): Promise<Address | null>; isNameAvailable?(name: string): Promise<boolean> };
 }): Promise<Access> {
   const newsroom = a.newsroom;
-  if (!isNewsroomName(newsroom)) return visitor(newsroom, "invalid_name", "Use o nome da redação no formato nome.eth, em minúsculas.");
+  if (!isNewsroomName(newsroom)) return visitor(newsroom, "invalid_name", "Use the newsroom name in the format name.eth, in lowercase.");
 
   let custodian: string;
   try {
     custodian = (await a.reader.resolveNewsroom(newsroom)).custodian.toLowerCase();
   } catch (e) {
     if (e instanceof NewsroomNotFoundError) {
-      // Só oferece o cadastro se o nome está livre. Se já está registrado, a leitura pode ter falhado ou o nome é de outra pessoa.
+      // Only offers sign-up if the name is free. If it is already registered, the read may have failed or the name belongs to someone else.
       if (a.reader.isNameAvailable && /^[^.]+\.eth$/.test(newsroom) && !(await a.reader.isNameAvailable(newsroom))) {
-        return visitor(newsroom, "name_taken", `O nome ${newsroom} já está registrado no ENS, mas não tem os dados de uma redação do Safe Whistle (ou a leitura falhou agora). Tente de novo em instantes; se o nome é de outra pessoa, escolha outro.`);
+        return visitor(newsroom, "name_taken", `The name ${newsroom} is already registered in ENS, but it does not have the data of a Safe Whistle newsroom (or the read failed just now). Try again in a moment; if the name belongs to someone else, choose another.`);
       }
-      return visitor(newsroom, "newsroom_not_found", "Esta redação ainda não existe no ENS. Se ela é sua, cadastre-a agora.");
+      return visitor(newsroom, "newsroom_not_found", "This newsroom does not exist in ENS yet. If it is yours, register it now.");
     }
-    if (e instanceof RecordsError) return visitor(newsroom, "newsroom_misconfigured", "A redação publicou registros inválidos no ENS. O administrador precisa corrigi-los.");
+    if (e instanceof RecordsError) return visitor(newsroom, "newsroom_misconfigured", "The newsroom published invalid records in ENS. The administrator must fix them.");
     throw e;
   }
   if (a.address.toLowerCase() === custodian) return { role: "admin", newsroom };
 
   const raw = a.journalist?.trim().toLowerCase();
-  if (!raw) return visitor(newsroom, "name_required", "Esta carteira não é a do administrador. Se você é jornalista da redação, informe o seu nome (ex.: maria).");
+  if (!raw) return visitor(newsroom, "name_required", "This wallet is not the administrator's. If you are a journalist at the newsroom, enter your name (e.g.: maria).");
   const suffix = `.${newsroom}`;
   const label = raw.endsWith(suffix) ? raw.slice(0, -suffix.length) : raw;
-  if (!LABEL_RE.test(label)) return visitor(newsroom, "invalid_name", `O nome de jornalista deve ser como "maria" ou "maria${suffix}".`);
+  if (!LABEL_RE.test(label)) return visitor(newsroom, "invalid_name", `The journalist name must be like "maria" or "maria${suffix}".`);
 
   const journalistName = `${label}${suffix}`;
   const owner = await a.reader.journalistOwner(journalistName);
-  if (owner === null) return visitor(newsroom, "journalist_inactive", `${journalistName} não está ativo nesta redação (nunca foi cadastrado ou foi revogado). Fale com o administrador.`);
-  if (owner.toLowerCase() !== a.address.toLowerCase()) return visitor(newsroom, "wrong_wallet", `${journalistName} pertence a outra carteira. Troque de conta na carteira e tente de novo.`);
+  if (owner === null) return visitor(newsroom, "journalist_inactive", `${journalistName} is not active in this newsroom (never registered or revoked). Talk to the administrator.`);
+  if (owner.toLowerCase() !== a.address.toLowerCase()) return visitor(newsroom, "wrong_wallet", `${journalistName} belongs to another wallet. Switch accounts in your wallet and try again.`);
   return { role: "journalist", newsroom, journalistName };
 }
 
-/** Tudo que o painel faz, para o código recusar fora do papel (a regra vale no código, não só na tela). */
+/** Everything the dashboard does, so the code can refuse outside the role (the rule applies in code, not just on screen). */
 export const ACTIONS = [
   "register_newsroom", "read_inbox", "decrypt", "set_status", "reply", "renew", "reader_key", "import_shared_keyring",
   "manage_team", "rotate_key", "edit_policy", "backup",

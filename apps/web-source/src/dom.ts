@@ -1,4 +1,4 @@
-// Ajuda mínima para montar a tela. Todo texto entra por `textContent` (nunca por HTML).
+// Minimal helper to build the screen. All text goes through `textContent` (never HTML).
 type Child = Node | string | null | undefined | false;
 type Props = Record<string, unknown>;
 

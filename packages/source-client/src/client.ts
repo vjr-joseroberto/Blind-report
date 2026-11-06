@@ -5,16 +5,16 @@ import { SourceError, ProofError, type SourceErrorCode } from "./errors.ts";
 import type { SourceDeps, SourceReceipt } from "./types.ts";
 
 const MESSAGES: Partial<Record<SourceErrorCode, string>> = {
-  limit_reached: "Você já enviou para esta redação neste mês. Tente de novo no próximo mês.",
-  epoch_mismatch: "Virou o mês durante o envio. Tente de novo.",
-  proof_rejected: "A prova de que você é uma pessoa real não foi aceita. Tente de novo.",
-  publish_failed: "Não foi possível enviar agora. Seu texto continua aqui; tente de novo.",
-  too_large: "A denúncia é grande demais para esta redação.",
-  stale_key_version: "A redação trocou a chave de segurança várias vezes seguidas. Tente de novo.",
-  newsroom_not_found: "Redação não encontrada. Confira o nome.",
-  category_not_allowed: "Esta redação não aceita essa categoria.",
-  attachments_not_allowed: "Esta redação não aceita anexos.",
-  invalid_size: "A denúncia está vazia ou com tamanho inválido.",
+  limit_reached: "You already submitted to this newsroom this month. Try again next month.",
+  epoch_mismatch: "The month changed during submission. Try again.",
+  proof_rejected: "The proof that you are a real person was not accepted. Try again.",
+  publish_failed: "Could not submit now. Your text is still here; try again.",
+  too_large: "The tip is too large for this newsroom.",
+  stale_key_version: "The newsroom changed its security key several times in a row. Try again.",
+  newsroom_not_found: "Newsroom not found. Check the name.",
+  category_not_allowed: "This newsroom does not accept this category.",
+  attachments_not_allowed: "This newsroom does not accept attachments.",
+  invalid_size: "The tip is empty or has an invalid size.",
 };
 const RELAYER_CODE: Record<string, SourceErrorCode> = {
   limit_reached: "limit_reached", epoch_mismatch: "epoch_mismatch", publish_failed: "publish_failed", body_too_large: "too_large",
@@ -23,7 +23,7 @@ const RELAYER_CODE: Record<string, SourceErrorCode> = {
   too_large: "too_large", attachments_not_allowed: "attachments_not_allowed", invalid_size: "invalid_size",
 };
 const PROOF_CODE = { denied: "proof_denied", expired: "proof_expired", cancelled: "proof_cancelled" } as const;
-const PROOF_TEXT = { denied: "A prova foi negada.", expired: "O pedido de prova expirou. Tente de novo.", cancelled: "Você cancelou a prova." } as const;
+const PROOF_TEXT = { denied: "The proof was denied.", expired: "The proof request expired. Try again.", cancelled: "You cancelled the proof." } as const;
 const MAX_PAGES = 200;
 
 type SubmitInput = { newsroom: string; category: string; text: string; attachment?: Attachment };
@@ -33,13 +33,13 @@ export function createSourceClient(deps: SourceDeps) {
   const base = deps.relayerUrl.replace(/\/+$/, "");
 
   async function lookupNewsroom(name: string): Promise<NewsroomInfo> {
-    if (!isNewsroomName(name)) throw new SourceError("invalid_newsroom", "Use o nome da redação no formato nome.eth, em minúsculas.");
+    if (!isNewsroomName(name)) throw new SourceError("invalid_newsroom", "Use the newsroom name in the format name.eth, in lowercase.");
     try {
       return await deps.reader.resolveNewsroom(name);
     } catch (e) {
       if (e instanceof NewsroomNotFoundError) throw new SourceError("newsroom_not_found", MESSAGES.newsroom_not_found!);
-      if (e instanceof RecordsError) throw new SourceError("newsroom_misconfigured", "A redação publicou uma configuração incorreta no ENS.");
-      throw new SourceError("network", "Não foi possível consultar o ENS. Verifique o RPC e a conexão.");
+      if (e instanceof RecordsError) throw new SourceError("newsroom_misconfigured", "The newsroom published an incorrect configuration in ENS.");
+      throw new SourceError("network", "Could not query ENS. Check the RPC and the connection.");
     }
   }
 
@@ -48,12 +48,12 @@ export function createSourceClient(deps: SourceDeps) {
     try {
       res = await deps.fetch(`${base}${path}`, init);
     } catch {
-      throw new SourceError("network", "Sem conexão com o servidor de envio. Seu texto continua aqui; tente de novo.");
+      throw new SourceError("network", "No connection to the submission server. Your text is still here; try again.");
     }
     try {
       return { status: res.status, json: await res.json() };
     } catch {
-      throw new SourceError("unexpected_response", "O servidor de envio respondeu algo inesperado.");
+      throw new SourceError("unexpected_response", "The submission server returned something unexpected.");
     }
   }
 
@@ -73,7 +73,7 @@ export function createSourceClient(deps: SourceDeps) {
     if (ctx.status !== 200) throw relayerError(ctx.json);
     const c = ctx.json;
     if (c?.action !== actionFor(input.newsroom, c?.epoch) || typeof c?.app_id !== "string" || typeof c?.epoch !== "number") {
-      throw new SourceError("unexpected_response", "O servidor de envio devolveu uma ação de prova inesperada.");
+      throw new SourceError("unexpected_response", "The submission server returned an unexpected proof action.");
     }
 
     let proof;
@@ -109,14 +109,14 @@ export function createSourceClient(deps: SourceDeps) {
   function relayerError(json: any): SourceError {
     const f = failure(json);
     const code = RELAYER_CODE[f.code];
-    if (!code) return new SourceError("relayer_error", f.message ?? "O servidor de envio recusou o pedido.");
-    return new SourceError(code, MESSAGES[code] ?? f.message ?? "O servidor de envio recusou o pedido.");
+    if (!code) return new SourceError("relayer_error", f.message ?? "The submission server refused the request.");
+    return new SourceError(code, MESSAGES[code] ?? f.message ?? "The submission server refused the request.");
   }
 
-  /** Só vale resposta escrita pelo administrador ou por um jornalista ativo; o resto é ignorado e contado. */
+  /** Only replies written by the administrator or an active journalist count; the rest is ignored and counted. */
   async function readReplies(receipt: SourceReceipt): Promise<{ replies: { text: string; createdAtBlock: bigint; author: string }[]; ignored: number }> {
     if (!receipt || !(receipt.mailboxPub instanceof Uint8Array) || !(receipt.mailboxPriv instanceof Uint8Array)) {
-      throw new SourceError("invalid_receipt", "Abra o recibo para ver as respostas.");
+      throw new SourceError("invalid_receipt", "Open the receipt to see the replies.");
     }
     const authority = createAuthority({ reader: deps.reader, newsroom: receipt.newsroom });
     const rows = await deps.replies.getReplies(mailboxId(receipt.mailboxPub));
@@ -127,7 +127,7 @@ export function createSourceClient(deps: SourceDeps) {
       try {
         authorized = row.newsroom === receipt.newsroom && (await authority.isAuthorized({ creator: row.creator, authorName: row.authorName }));
       } catch {
-        throw new SourceError("network", "Não foi possível conferir quem escreveu as respostas (ENS). Tente de novo.");
+        throw new SourceError("network", "Could not check who wrote the replies (ENS). Try again.");
       }
       if (!authorized) {
         ignored++;
@@ -135,10 +135,10 @@ export function createSourceClient(deps: SourceDeps) {
       }
       try {
         const payload = decodeReply(openReply(row.sealed, receipt));
-        if (payload.newsroom !== receipt.newsroom) throw new Error("outra redação");
+        if (payload.newsroom !== receipt.newsroom) throw new Error("another newsroom");
         replies.push({ text: payload.text, createdAtBlock: row.createdAtBlock, author: row.authorName ?? receipt.newsroom });
       } catch {
-        ignored++; // de outra caixa, adulterada, formato antigo ou de outra redação
+        ignored++; // from another mailbox, tampered, old format or from another newsroom
       }
     }
     return { replies, ignored };
@@ -149,7 +149,7 @@ export function createSourceClient(deps: SourceDeps) {
     try {
       env = decodeEnvelope(a.envelope);
     } catch {
-      throw new SourceError("invalid_envelope", "O arquivo não é um envelope do Safe Whistle.");
+      throw new SourceError("invalid_envelope", "The file is not a Safe Whistle envelope.");
     }
     const hashMatches = verifyContentHash(env);
     if (!hashMatches) return { hashMatches, found: false, contentHash: env.contentHash };
@@ -167,7 +167,7 @@ export function createSourceClient(deps: SourceDeps) {
     try {
       env = decodeEnvelope(a.envelope);
     } catch {
-      throw new SourceError("invalid_envelope", "O arquivo não é um envelope do Safe Whistle.");
+      throw new SourceError("invalid_envelope", "The file is not a Safe Whistle envelope.");
     }
     return verifyCommitment(env, encodePayload({ text: a.text, attachment: a.attachment }), a.salt);
   }

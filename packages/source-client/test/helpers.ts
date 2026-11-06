@@ -25,7 +25,7 @@ export const proofFor = (action: string): IdKitPayload => ({ action, environment
 
 type Handler = (body: Record<string, any>) => { status: number; json: unknown };
 
-/** Relayer de mentira: responde /rp-context e /submissions e guarda o que recebeu. */
+/** Fake relayer: responds to /rp-context and /submissions and stores what it received. */
 export function makeRelayer(over: { submit?: Handler } = {}) {
   const received: Record<string, any>[] = [];
   const fetchImpl: typeof fetch = async (input, init) => {

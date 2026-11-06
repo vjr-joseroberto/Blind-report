@@ -5,7 +5,7 @@ import { bytesToHex, hexToBytes, type Address, type Hex } from "viem";
 import type { AttrValue, Attrs, Backend, EntityRow } from "./backend.ts";
 import { ARKIV_BLOCK_SECONDS, KIND_ATTRS, type EntityKind } from "./constants.ts";
 
-// Esquemas no Arkiv. Os atributos indexados são os únicos que a consulta pode filtrar.
+// Schemas in Arkiv. Indexed attributes are the only ones the query can filter on.
 const SCHEMAS = {
   denuncia: defineSchema("safe-whistle.denuncia", {
     newsroom: str().indexed(), category: str().indexed(), status: str().indexed(), epoch: u64().indexed(), contentHash: str().indexed(),
@@ -17,7 +17,7 @@ const SCHEMAS = {
 
 const DATA_COLUMN: Record<EntityKind, string> = { denuncia: "envelope", resposta: "sealed", anotacao: "note" };
 
-// O SDK é muito tipado por esquema; aqui o acesso é dinâmico por tipo, então usamos um contrato estreito.
+// The SDK is strongly typed per schema; here access is dynamic per kind, so we use a narrow contract.
 type SdkPublic = { select: (...a: unknown[]) => any; getBlockTiming: () => Promise<{ currentBlock: bigint; blockDuration: number }> };
 type SdkWallet = {
   account?: { address: Address };
@@ -46,18 +46,18 @@ function toRow(kind: EntityKind, raw: Record<string, unknown>): EntityRow {
   };
 }
 
-/** Backend real sobre o SDK do Arkiv (testnet Rabdi ou nó local). */
+/** Real backend on the Arkiv SDK (Rabdi testnet or local node). */
 export function createSdkBackend(clients: { publicClient: unknown; walletClient: unknown }): Backend {
   const pub = clients.publicClient as SdkPublic;
   const wallet = clients.walletClient as SdkWallet;
-  if (!wallet.account) throw new Error("O cliente de escrita precisa de uma conta.");
+  if (!wallet.account) throw new Error("The write client needs an account.");
   const account = wallet.account.address;
   const blocks = (seconds: number) => Math.max(1, Math.ceil(seconds / ARKIV_BLOCK_SECONDS));
 
   const expression = (kind: EntityKind, filter: Attrs) => {
     const exprs = Object.entries(filter).map(([name, value]) => {
       const type = KIND_ATTRS[kind][name];
-      if (!type) throw new Error(`Atributo desconhecido para ${kind}: ${name}`);
+      if (!type) throw new Error(`Unknown attribute for ${kind}: ${name}`);
       return eq(name as never, toColumnValue(type, value) as never);
     });
     return exprs.length === 1 ? exprs[0]! : (and as (...e: unknown[]) => unknown)(...exprs);
@@ -66,7 +66,7 @@ export function createSdkBackend(clients: { publicClient: unknown; walletClient:
   return {
     account,
     async create(kind, attrs, data, options) {
-      for (const k of Object.keys(attrs)) if (!(k in KIND_ATTRS[kind])) throw new Error(`Atributo desconhecido para ${kind}: ${k}`);
+      for (const k of Object.keys(attrs)) if (!(k in KIND_ATTRS[kind])) throw new Error(`Unknown attribute for ${kind}: ${k}`);
       const values: Record<string, unknown> = {};
       for (const [name, type] of Object.entries(KIND_ATTRS[kind])) if (attrs[name] !== undefined) values[name] = toColumnValue(type, attrs[name]!);
       values[DATA_COLUMN[kind]] = data;
@@ -88,7 +88,7 @@ export function createSdkBackend(clients: { publicClient: unknown; walletClient:
       return raw ? toRow(kind, raw) : null;
     },
     async select(kind, filter, page) {
-      if (Object.keys(filter).length === 0) throw new Error("A consulta exige ao menos um filtro.");
+      if (Object.keys(filter).length === 0) throw new Error("The query requires at least one filter.");
       const res = await pub.select().from(SCHEMAS[kind]).where(expression(kind, filter)).limit(page.limit).offset(page.offset).fetch();
       return (res.entities as Record<string, unknown>[]).map((r) => toRow(kind, r));
     },

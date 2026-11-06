@@ -21,26 +21,26 @@ const base = (over: Partial<Parameters<typeof seal>[0]> = {}) => {
   };
 };
 
-describe("RF-07 cifrar a denúncia no cliente", () => {
-  it("o_destinatario_abre_o_envelope", () => {
+describe("RF-07 encrypt the tip on the client", () => {
+  it("the_recipient_opens_the_envelope", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     expect(text(open(envelope, "redacao", p.redacao))).toBe("Documento fictício de teste.");
   });
 
-  it("o_segundo_destinatario_tambem_abre", () => {
+  it("the_second_recipient_also_opens", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     expect(text(open(envelope, "maria", p.maria))).toBe("Documento fictício de teste.");
   });
 
-  it("outra_chave_nao_abre", () => {
+  it("another_key_does_not_open", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     expect(() => open(envelope, "redacao", p.intruso)).toThrow(CryptoError);
   });
 
-  it("quem_nao_e_destinatario_nao_abre", () => {
+  it("whoever_is_not_a_recipient_does_not_open", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     try {
@@ -51,7 +51,7 @@ describe("RF-07 cifrar a denúncia no cliente", () => {
     }
   });
 
-  it("o_envelope_declara_o_contexto_e_o_formato", () => {
+  it("the_envelope_declares_the_context_and_format", () => {
     const { opts } = base();
     const now = new Date("2026-11-01T12:00:00Z");
     const { envelope } = seal(opts, { now: () => now });
@@ -63,46 +63,46 @@ describe("RF-07 cifrar a denúncia no cliente", () => {
     expect(envelope.commitment).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
-  it("o_ciphertext_e_binario_e_tem_o_tamanho_do_texto_mais_a_etiqueta", () => {
+  it("the_ciphertext_is_binary_and_has_the_text_size_plus_the_tag", () => {
     const { opts } = base();
     const { envelope } = seal(opts);
     expect(envelope.ciphertext).toBeInstanceOf(Uint8Array);
     expect(envelope.ciphertext.length).toBe(opts.plaintext.length + 16);
   });
 
-  it("o_ciphertext_nao_contem_o_texto_original", () => {
+  it("the_ciphertext_does_not_contain_the_original_text", () => {
     const { opts } = base({ plaintext: utf8("texto-muito-reconhecivel-1234567890") });
     const { envelope } = seal(opts);
     expect(text(envelope.ciphertext)).not.toContain("texto-muito-reconhecivel");
   });
 
-  it("recusa_sem_destinatarios", () => {
+  it("rejects_without_recipients", () => {
     const { opts } = base({ recipients: [] });
     expect(() => seal(opts)).toThrow(CryptoError);
   });
 
-  it("recusa_destinatarios_com_o_mesmo_id", () => {
+  it("rejects_recipients_with_the_same_id", () => {
     const { p, opts } = base();
     expect(() => seal({ ...opts, recipients: [{ id: "x", publicKey: p.redacao.publicKey }, { id: "x", publicKey: p.maria.publicKey }] })).toThrow(CryptoError);
   });
 
-  it("recusa_chave_publica_de_tamanho_errado", () => {
+  it("rejects_public_key_of_wrong_size", () => {
     const { opts } = base({ recipients: [{ id: "x", publicKey: new Uint8Array(10) }] });
     expect(() => seal(opts)).toThrow(CryptoError);
   });
 
-  it("recusa_texto_vazio", () => {
+  it("rejects_empty_text", () => {
     const { opts } = base({ plaintext: new Uint8Array() });
     expect(() => seal(opts)).toThrow(CryptoError);
   });
 
-  it("recusa_versao_de_chave_invalida", () => {
+  it("rejects_invalid_key_version", () => {
     for (const v of [0, -1, 1.5]) expect(() => seal(base({ pubkeyVersion: v }).opts)).toThrow(CryptoError);
   });
 });
 
-describe("RNF-03 integridade: o contexto fica amarrado ao conteúdo", () => {
-  it("alterar_o_ciphertext_falha", () => {
+describe("RNF-03 integrity: the context is bound to the content", () => {
+  it("changing_the_ciphertext_fails", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     const ciphertext = new Uint8Array(envelope.ciphertext);
@@ -110,25 +110,25 @@ describe("RNF-03 integridade: o contexto fica amarrado ao conteúdo", () => {
     expect(() => open({ ...envelope, ciphertext }, "redacao", p.redacao)).toThrow(CryptoError);
   });
 
-  it("alterar_a_categoria_falha", () => {
+  it("changing_the_category_fails", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     expect(() => open({ ...envelope, category: "outra" }, "redacao", p.redacao)).toThrow(CryptoError);
   });
 
-  it("alterar_a_redacao_falha", () => {
+  it("changing_the_newsroom_fails", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     expect(() => open({ ...envelope, newsroom: "outro.jornal.eth" }, "redacao", p.redacao)).toThrow(CryptoError);
   });
 
-  it("alterar_a_versao_da_chave_falha", () => {
+  it("changing_the_key_version_fails", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     expect(() => open({ ...envelope, pubkeyVersion: 2 }, "redacao", p.redacao)).toThrow(CryptoError);
   });
 
-  it("alterar_o_nonce_falha", () => {
+  it("changing_the_nonce_fails", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     const nonce = new Uint8Array(envelope.nonce);
@@ -136,7 +136,7 @@ describe("RNF-03 integridade: o contexto fica amarrado ao conteúdo", () => {
     expect(() => open({ ...envelope, nonce }, "redacao", p.redacao)).toThrow(CryptoError);
   });
 
-  it("alterar_a_chave_embrulhada_falha", () => {
+  it("changing_the_wrapped_key_fails", () => {
     const { p, opts } = base();
     const { envelope } = seal(opts);
     const wrapped = envelope.wrappedKeys.map((w) => ({ ...w, sealed: new Uint8Array(w.sealed) }));
@@ -145,8 +145,8 @@ describe("RNF-03 integridade: o contexto fica amarrado ao conteúdo", () => {
   });
 });
 
-describe("propriedades", () => {
-  it("abrir_apos_cifrar_devolve_o_original_para_qualquer_bytes", () => {
+describe("properties", () => {
+  it("opening_after_encrypting_returns_the_original_for_any_bytes", () => {
     const p = people();
     fc.assert(
       fc.property(fc.uint8Array({ minLength: 1, maxLength: 4096 }), (plaintext) => {
@@ -157,7 +157,7 @@ describe("propriedades", () => {
     );
   });
 
-  it("o_mesmo_texto_gera_envelopes_diferentes_sem_correlacao", () => {
+  it("the_same_text_generates_different_uncorrelated_envelopes", () => {
     const { opts } = base();
     const a = seal(opts).envelope;
     const b = seal(opts).envelope;
@@ -168,7 +168,7 @@ describe("propriedades", () => {
     expect(a.mailboxPub).not.toEqual(b.mailboxPub);
   });
 
-  it("com_aleatoriedade_injetada_as_partes_controladas_sao_reproduziveis", () => {
+  it("with_injected_randomness_the_controlled_parts_are_reproducible", () => {
     const { opts } = base();
     const now = () => new Date("2026-11-01T00:00:00Z");
     const a = seal(opts, { random: seededRandom(9), now });
@@ -180,7 +180,7 @@ describe("propriedades", () => {
     expect(a.receipt.salt).toEqual(b.receipt.salt);
   });
 
-  it("chaves_diferentes_nunca_abrem_o_envelope_alheio", () => {
+  it("different_keys_never_open_someone_elses_envelope", () => {
     fc.assert(
       fc.property(fc.uint8Array({ minLength: 1, maxLength: 256 }), (plaintext) => {
         const dono = newKeypair();

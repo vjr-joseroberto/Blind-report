@@ -10,9 +10,9 @@ export class PartsError extends Error {
   }
 }
 
-/** Divide bytes em partes de até `partSize` bytes. Entrada vazia gera uma parte vazia. */
+/** Splits bytes into parts of up to `partSize` bytes. An empty input yields one empty part. */
 export function splitIntoParts(data: Uint8Array, partSize: number = PART_PAYLOAD_BYTES): Part[] {
-  if (!Number.isInteger(partSize) || partSize < 1) throw new RangeError("O tamanho da parte deve ser um inteiro positivo.");
+  if (!Number.isInteger(partSize) || partSize < 1) throw new RangeError("Part size must be a positive integer.");
   const total = Math.max(1, Math.ceil(data.length / partSize));
   return Array.from({ length: total }, (_, index) => ({
     index,
@@ -21,21 +21,21 @@ export function splitIntoParts(data: Uint8Array, partSize: number = PART_PAYLOAD
   }));
 }
 
-/** Remonta as partes em qualquer ordem; exige todas, sem repetição e com o mesmo total. */
+/** Reassembles parts in any order; requires all of them, without repetition and with the same total. */
 export function joinParts(parts: Part[]): Uint8Array {
-  if (parts.length === 0) throw new PartsError("empty", "Nenhuma parte informada.");
+  if (parts.length === 0) throw new PartsError("empty", "No parts provided.");
   const total = parts[0]!.total;
-  if (parts.some((p) => p.total !== total)) throw new PartsError("inconsistent_total", "As partes declaram totais diferentes.");
+  if (parts.some((p) => p.total !== total)) throw new PartsError("inconsistent_total", "Parts declare different totals.");
   const byIndex = new Map<number, Part>();
   for (const p of parts) {
-    if (byIndex.has(p.index)) throw new PartsError("duplicate", `Parte repetida: ${p.index}`);
+    if (byIndex.has(p.index)) throw new PartsError("duplicate", `Duplicate part: ${p.index}`);
     byIndex.set(p.index, p);
   }
-  if (byIndex.size !== total) throw new PartsError("missing", `Faltam partes: recebidas ${byIndex.size} de ${total}.`);
+  if (byIndex.size !== total) throw new PartsError("missing", `Missing parts: received ${byIndex.size} of ${total}.`);
   const ordered: Part[] = [];
   for (let i = 0; i < total; i++) {
     const p = byIndex.get(i);
-    if (!p) throw new PartsError("missing", `Falta a parte ${i}.`);
+    if (!p) throw new PartsError("missing", `Missing part ${i}.`);
     ordered.push(p);
   }
   const out = new Uint8Array(ordered.reduce((n, p) => n + p.data.length, 0));

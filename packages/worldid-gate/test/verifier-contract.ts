@@ -1,17 +1,17 @@
-// Contrato do verificador: o dublê e o verificador real obedecem à mesma suíte.
+// Verifier contract: the double and the real verifier obey the same suite.
 import { describe, expect, it } from "vitest";
 import type { IdKitPayload, Verifier } from "../src/index.ts";
 import { payload } from "./helpers.ts";
 
 export function defineVerifierContract(label: string, make: () => { verifier: Verifier; good: () => IdKitPayload; bad: () => IdKitPayload }): void {
-  describe(`contrato do verificador: ${label}`, () => {
-    it("prova_valida_devolve_sucesso", async () => {
+  describe(`verifier contract: ${label}`, () => {
+    it("valid_proof_returns_success", async () => {
       const { verifier, good } = make();
       const r = await verifier(good());
       expect(r.success).toBe(true);
     });
 
-    it("prova_invalida_devolve_falha_com_motivo_e_nunca_lanca_erro", async () => {
+    it("invalid_proof_returns_failure_with_reason_and_never_throws", async () => {
       const { verifier, bad } = make();
       const r = await verifier(bad());
       expect(r.success).toBe(false);
@@ -19,7 +19,7 @@ export function defineVerifierContract(label: string, make: () => { verifier: Ve
       expect(r.error!.length).toBeGreaterThan(0);
     });
 
-    it("devolve_ambiente_e_acao_quando_aceita", async () => {
+    it("returns_environment_and_action_when_accepted", async () => {
       const { verifier, good } = make();
       const p = good();
       const r = await verifier(p);

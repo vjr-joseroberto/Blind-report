@@ -1,4 +1,4 @@
-// Ajuda mínima para montar a tela. Todo texto entra por `textContent` (nunca por HTML).
+// Minimal helper to build the screen. All text goes through `textContent` (never HTML).
 type Child = Node | string | null | undefined | false;
 type Props = Record<string, unknown>;
 
@@ -14,7 +14,7 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Props = 
   return node;
 }
 
-/** Baixa um arquivo. O link precisa estar no documento (Firefox) e a URL só pode ser liberada depois que o download começou. */
+/** Downloads a file. The link must be in the document (Firefox) and the URL can only be released after the download has started. */
 export const download = (name: string, text: string) => {
   const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
   const a = h("a", { href: url, download: name });
@@ -24,7 +24,7 @@ export const download = (name: string, text: string) => {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 };
 
-/** Guarda o que foi digitado em campos com `id`, para devolver depois de redesenhar a tela (só em memória). */
+/** Saves what was typed in fields with an `id`, to restore after redrawing the screen (in memory only). */
 export function captureFields(root: ParentNode): () => void {
   const saved = new Map<string, { value: string; checked: boolean }>();
   root.querySelectorAll<HTMLInputElement>("input[id], textarea[id], select[id]").forEach((el) => saved.set(el.id, { value: el.value, checked: (el as HTMLInputElement).checked }));

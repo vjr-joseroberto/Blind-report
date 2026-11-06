@@ -1,43 +1,43 @@
-# World ID (IDKit): relatório curto
+# World ID (IDKit): short report
 
-Trilha **Best Use of IDKit**. Este texto responde ao que a trilha pede: credencial verificada no servidor, justificativa da credencial mínima, caminho de sucesso e caminhos alternativos, e o que aprendemos.
+Track **Best Use of IDKit**. This text answers what the track asks for: credential verified on the server, justification for the minimum credential, success path and alternative paths, and what we learned.
 
-## 1. Para que o World ID é usado
-Um canal de denúncia anônimo precisa barrar o **spam sem identificar a fonte**. O World ID prova que quem envia é **uma pessoa real e única**, sem revelar quem é. A regra do produto é: **uma denúncia por pessoa, por redação, por mês**.
+## 1. What World ID is used for
+An anonymous tip channel needs to block **spam without identifying the source**. World ID proves that whoever sends is **a real, unique person**, without revealing who they are. The product rule is: **one tip per person, per newsroom, per month**.
 
-## 2. Credencial usada e por quê
-- **`proofOfHuman`** (humano único), pedida com `IDKit.request({...}).preset(proofOfHuman())` e `allow_legacy_proofs: false`.
-- **Credencial mínima:** só precisamos saber que a pessoa é única. Não pedimos idade, nacionalidade nem qualquer outro dado, porque nada disso ajudaria a barrar spam e cada dado a mais aproximaria a prova da identificação.
+## 2. Credential used and why
+- **`proofOfHuman`** (unique human), requested with `IDKit.request({...}).preset(proofOfHuman())` and `allow_legacy_proofs: false`.
+- **Minimum credential:** we only need to know that the person is unique. We do not request age, nationality or any other data, because none of that would help block spam and each extra data point would bring the proof closer to identification.
 
-## 3. Como a prova é usada
-1. A tela da fonte pede ao relayer o **contexto da prova** (`GET /rp-context`). O relayer o **assina no servidor** (a chave de assinatura nunca vai ao navegador).
-2. A **ação** da prova é `submit:<redação>:<mês>`. O identificador devolvido (*nullifier*) depende da pessoa **e** da ação: a mesma pessoa em outra redação, ou em outro mês, gera outro identificador, e os envios não se ligam.
-3. O IDKit entrega a prova; a tela a envia ao relayer junto do envelope cifrado.
-4. O relayer **verifica no servidor** (`POST developer.world.org/api/v4/verify/{rp_id}`), conferindo **ambiente**, **ação** e o **identificador**.
-5. Guarda só um **hash** do identificador com a ação (para barrar o segundo envio) e **nunca** o grava junto da denúncia.
+## 3. How the proof is used
+1. The source screen asks the relayer for the **proof context** (`GET /rp-context`). The relayer **signs it on the server** (the signing key never goes to the browser).
+2. The proof **action** is `submit:<newsroom>:<month>`. The returned identifier (*nullifier*) depends on the person **and** the action: the same person in another newsroom, or in another month, generates another identifier, and the submissions cannot be linked.
+3. IDKit delivers the proof; the screen sends it to the relayer together with the encrypted envelope.
+4. The relayer **verifies on the server** (`POST developer.world.org/api/v4/verify/{rp_id}`), checking the **environment**, the **action** and the **identifier**.
+5. It stores only a **hash** of the identifier with the action (to block the second submission) and **never** stores it together with the tip.
 
-Código: `packages/worldid-gate` (contexto, verificador, armazém e portão), `packages/source-client/src/idkit.ts` (pedido no navegador) e `apps/relayer` (uso no envio).
+Code: `packages/worldid-gate` (context, verifier, store and gate), `packages/source-client/src/idkit.ts` (request in the browser) and `apps/relayer` (use on submission).
 
-## 4. Caminho de sucesso e caminhos alternativos
-| Situação | Resultado |
+## 4. Success path and alternative paths
+| Situation | Result |
 |---|---|
-| Prova válida, primeira vez no mês | **Aceita**; a denúncia é publicada |
-| Pessoa **nega**, o pedido **expira** ou ela **cancela** | **Nada é enviado**; a tela explica a causa e mantém o texto |
-| Segunda denúncia da mesma pessoa à mesma redação no mês | **Recusada** (`limit_reached`), com mensagem clara |
-| Prova para **outra ação** ou **outro ambiente** | **Recusada** (`wrong_action`, `wrong_environment`) |
-| Prova rejeitada pela API do World | **Recusada** (`proof_rejected`); a reserva é devolvida se a publicação falhar depois |
-| Prova de uma redação usada em outra | **Não vale** (a ação é diferente) |
+| Valid proof, first time in the month | **Accepted**; the tip is published |
+| Person **denies**, the request **expires** or they **cancel** | **Nothing is sent**; the screen explains the cause and keeps the text |
+| Second tip from the same person to the same newsroom in the month | **Refused** (`limit_reached`), with a clear message |
+| Proof for **another action** or **another environment** | **Refused** (`wrong_action`, `wrong_environment`) |
+| Proof rejected by the World API | **Refused** (`proof_rejected`); the reservation is returned if publication fails afterwards |
+| Proof from one newsroom used in another | **Does not count** (the action is different) |
 
-## 5. O que foi validado
-- **Prova real no simulador do World (ambiente de teste, identidades falsas):** a primeira prova foi aceita; a de outra redação, também; o segundo envio da mesma pessoa à mesma redação foi **recusado**. O identificador da primeira e da terceira prova é **igual**, e **diferente** do da prova de outra redação (`validation/RESULTADOS.md`, V-02, `validation/out/v02.json`).
-- **Testes automáticos:** `packages/worldid-gate` (portão, verificador, armazém, assinatura) e o E2E, que percorre o limite por pessoa com um verificador simulado.
+## 5. What was validated
+- **Real proof in the World simulator (test environment, fake identities):** the first proof was accepted; the one for another newsroom, too; the second submission from the same person to the same newsroom was **refused**. The identifier of the first and third proofs is **the same**, and **different** from the one for another newsroom (`validation/RESULTS.md`, V-02, `validation/out/v02.json`).
+- **Automated tests:** `packages/worldid-gate` (gate, verifier, store, signature) and the E2E, which walks through the per-person limit with a simulated verifier.
 
-## 6. O que aprendemos
-- O **widget padrão** do IDKit carrega fontes de um domínio de terceiros do World, o que atrapalha uma exigência de "sem rastreadores de terceiros" (CROPS). Usamos o pacote **sem interface** (`@worldcoin/idkit-core`) e montamos a tela nós mesmos.
-- A **ação** é a peça-chave do desenho: embutir `redação + mês` nela dá o limite certo e impede ligar envios entre redações.
-- O pedido precisa ser **assinado no servidor**; assinar no navegador exporia a chave.
-- Guardar só o **hash** do identificador basta para barrar repetição e evita acumular um dado ligável.
+## 6. What we learned
+- IDKit's **default widget** loads fonts from a World third-party domain, which conflicts with a "no third-party trackers" requirement (CROPS). We use the **headless** package (`@worldcoin/idkit-core`) and build the screen ourselves.
+- The **action** is the key piece of the design: embedding `newsroom + month` in it gives the right limit and prevents linking submissions across newsrooms.
+- The request must be **signed on the server**; signing in the browser would expose the key.
+- Storing only the **hash** of the identifier is enough to block repetition and avoids accumulating linkable data.
 
-## 7. Limites
-- Tudo foi feito no **ambiente de teste** e no **simulador**; a prova com o aplicativo do World em **produção** não foi validada.
-- Abrir o link da prova no aplicativo do World conecta o celular da pessoa aos servidores do World. O World vê que alguém provou ser humano para aquela redação naquele mês, mas não vê o texto.
+## 7. Limits
+- Everything was done in the **test environment** and in the **simulator**; the proof with the World app in **production** was not validated.
+- Opening the proof link in the World app connects the person's phone to World servers. World sees that someone proved to be human for that newsroom in that month, but does not see the text.

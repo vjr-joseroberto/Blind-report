@@ -17,11 +17,11 @@ async function setup() {
 
 beforeAll(async () => {
   const code = await publicClient.getCode({ address: ENSV2_SEPOLIA.ethRegistrar });
-  if (!code || code === "0x") throw new Error("Fork da Sepolia indisponível: rode `npm run nodes:up`.");
+  if (!code || code === "0x") throw new Error("Sepolia fork unavailable: run `npm run nodes:up`.");
 });
 
-describe("RF-01 e RF-02 cadastrar a redação e publicar os registros", () => {
-  it("cria_resolver_proprio_registra_o_nome_e_publica_a_chave", async () => {
+describe("RF-01 and RF-02 register the newsroom and publish the records", () => {
+  it("creates_its_own_resolver_registers_the_name_and_publishes_the_key", async () => {
     const { owner, admin, reader } = await setup();
     const label = uniqueLabel();
     const created = await admin.createNewsroom({ label, publicKey: KEY_V1, version: 1, policy, relayers: ["https://relayer.example.org"], custodian: owner.address });
@@ -39,12 +39,12 @@ describe("RF-01 e RF-02 cadastrar a redação e publicar os registros", () => {
     expect(info.custodian.toLowerCase()).toBe(owner.address.toLowerCase());
   });
 
-  it("nome_inexistente_devolve_erro_tipado", async () => {
+  it("nonexistent_name_returns_typed_error", async () => {
     const { reader } = await setup();
     await expect(reader.resolveNewsroom(`${uniqueLabel("inexistente")}.eth`)).rejects.toBeInstanceOf(NewsroomNotFoundError);
   });
 
-  it("um_subnome_sem_registro_resolve_pelo_resolver_do_nome_pai", async () => {
+  it("a_subname_without_record_resolves_through_the_parent_name_resolver", async () => {
     const { owner, admin, reader } = await setup();
     const label = uniqueLabel();
     const { name, resolver } = await admin.createNewsroom({ label, publicKey: KEY_V1, version: 1, policy, custodian: owner.address });
@@ -53,8 +53,8 @@ describe("RF-01 e RF-02 cadastrar a redação e publicar os registros", () => {
   });
 });
 
-describe("RN-02 e RN-03 permissões", () => {
-  it("quem_nao_tem_role_nao_troca_a_chave_da_redacao", async () => {
+describe("RN-02 and RN-03 permissions", () => {
+  it("whoever_has_no_role_cannot_change_the_newsroom_key", async () => {
     const { owner, admin } = await setup();
     const { name, resolver } = await admin.createNewsroom({ label: uniqueLabel(), publicKey: KEY_V1, version: 1, policy, custodian: owner.address });
     const intruso = await newWallet();
@@ -63,7 +63,7 @@ describe("RN-02 e RN-03 permissões", () => {
     ).rejects.toThrow();
   });
 
-  it("o_administrador_de_uma_redacao_nao_escreve_no_resolver_de_outra", async () => {
+  it("the_administrator_of_one_newsroom_does_not_write_to_another_resolver", async () => {
     const a = await setup();
     const b = await setup();
     await a.admin.createNewsroom({ label: uniqueLabel(), publicKey: KEY_V1, version: 1, policy, custodian: a.owner.address });
@@ -74,8 +74,8 @@ describe("RN-02 e RN-03 permissões", () => {
   });
 });
 
-describe("RF-03 rotação de chave", () => {
-  it("rotaciona_a_chave_e_incrementa_a_versao", async () => {
+describe("RF-03 key rotation", () => {
+  it("rotates_the_key_and_increments_the_version", async () => {
     const { owner, admin, reader } = await setup();
     const { name, resolver } = await admin.createNewsroom({ label: uniqueLabel(), publicKey: KEY_V1, version: 1, policy, custodian: owner.address });
     await admin.rotateKey({ name, resolver, publicKey: KEY_V2, version: 2 });
@@ -84,16 +84,16 @@ describe("RF-03 rotação de chave", () => {
     expect(info.pubkeyVersion).toBe(2);
   });
 
-  it("recusa_rotacao_sem_aumentar_a_versao", async () => {
+  it("rejects_rotation_without_increasing_the_version", async () => {
     const { owner, admin } = await setup();
     const { name, resolver } = await admin.createNewsroom({ label: uniqueLabel(), publicKey: KEY_V1, version: 3, policy, custodian: owner.address });
-    await expect(admin.rotateKey({ name, resolver, publicKey: KEY_V2, version: 3 })).rejects.toThrow(/versão/i);
-    await expect(admin.rotateKey({ name, resolver, publicKey: KEY_V2, version: 2 })).rejects.toThrow(/versão/i);
+    await expect(admin.rotateKey({ name, resolver, publicKey: KEY_V2, version: 3 })).rejects.toThrow(/version/i);
+    await expect(admin.rotateKey({ name, resolver, publicKey: KEY_V2, version: 2 })).rejects.toThrow(/version/i);
   });
 });
 
-describe("RF-04 e RF-05 jornalistas (resultado de V-04)", () => {
-  it("cadastra_jornalista_ativo_com_chave_de_leitura_e_sem_poder_de_transferir", async () => {
+describe("RF-04 and RF-05 journalists (result of V-04)", () => {
+  it("registers_active_journalist_with_reader_key_and_no_transfer_power", async () => {
     const { owner, admin, reader } = await setup();
     const maria = await newWallet();
     const nr = await admin.createNewsroom({ label: uniqueLabel(), publicKey: KEY_V1, version: 1, policy, custodian: owner.address });
@@ -101,7 +101,7 @@ describe("RF-04 e RF-05 jornalistas (resultado de V-04)", () => {
     const name = `maria.${nr.name}`;
     expect(await reader.isActiveJournalist(name)).toBe(true);
     expect(await reader.resolveReaderKey(name)).toEqual(READER);
-    // sem CAN_TRANSFER_ADMIN: o jornalista não consegue passar o subname adiante
+    // without CAN_TRANSFER_ADMIN: the journalist cannot pass the subname on
     const outro = await newWallet();
     const token = (await publicClient.readContract({ address: nr.subRegistry, abi: ABIS.userRegistry, functionName: "getTokenId", args: [BigInt(await keccakLabel("maria"))] })) as bigint;
     await expect(
@@ -109,7 +109,7 @@ describe("RF-04 e RF-05 jornalistas (resultado de V-04)", () => {
     ).rejects.toThrow();
   });
 
-  it("revoga_com_unregister_e_limpa_a_chave_de_leitura", async () => {
+  it("revokes_with_unregister_and_clears_the_reader_key", async () => {
     const { owner, admin, reader } = await setup();
     const maria = await newWallet();
     const nr = await admin.createNewsroom({ label: uniqueLabel(), publicKey: KEY_V1, version: 1, policy, custodian: owner.address });
@@ -117,10 +117,10 @@ describe("RF-04 e RF-05 jornalistas (resultado de V-04)", () => {
     await admin.revokeJournalist({ newsroom: nr, label: "maria" });
     const name = `maria.${nr.name}`;
     expect(await reader.isActiveJournalist(name)).toBe(false);
-    await expect(reader.resolveReaderKey(name)).rejects.toBeInstanceOf(RecordsError); // a chave foi limpa
+    await expect(reader.resolveReaderKey(name)).rejects.toBeInstanceOf(RecordsError); // the key was cleared
   });
 
-  it("terceiro_nao_revoga_nem_renova", async () => {
+  it("third_party_cannot_revoke_or_renew", async () => {
     const { owner, admin } = await setup();
     const maria = await newWallet();
     const nr = await admin.createNewsroom({ label: uniqueLabel(), publicKey: KEY_V1, version: 1, policy, custodian: owner.address });
@@ -131,17 +131,17 @@ describe("RF-04 e RF-05 jornalistas (resultado de V-04)", () => {
     await expect(publicClient.simulateContract({ address: nr.subRegistry, abi: ABIS.userRegistry, functionName: "renew", args: [token, BigInt(Math.floor(Date.now() / 1000) + 10 ** 7)], account: intruso.account })).rejects.toThrow();
   });
 
-  it("renova_o_prazo_e_apos_expirar_o_jornalista_deixa_de_estar_ativo_e_pode_ser_recadastrado", async () => {
+  it("renews_the_deadline_and_after_expiring_the_journalist_stops_being_active_and_can_be_reregistered", async () => {
     const { owner, admin, reader } = await setup();
     const maria = await newWallet();
     const nr = await admin.createNewsroom({ label: uniqueLabel(), publicKey: KEY_V1, version: 1, policy, custodian: owner.address });
     await admin.addJournalist({ newsroom: nr, label: "maria", address: maria.address, readerKey: READER, validForSeconds: 3600 });
     await admin.renewJournalist({ newsroom: nr, label: "maria", validForSeconds: 3 * 3600 });
-    await advance(2 * 3600); // passou do prazo original, mas não do renovado
+    await advance(2 * 3600); // past the original deadline, but not the renewed one
     expect(await reader.isActiveJournalist(`maria.${nr.name}`)).toBe(true);
-    await advance(2 * 3600); // agora expirou
+    await advance(2 * 3600); // now it has expired
     expect(await reader.isActiveJournalist(`maria.${nr.name}`)).toBe(false);
-    // a chave de leitura continua legível: por isso a decisão é do registry
+    // the reader key remains readable: that is why the decision belongs to the registry
     expect(await reader.resolveReaderKey(`maria.${nr.name}`)).toEqual(READER);
     await admin.addJournalist({ newsroom: nr, label: "maria", address: maria.address, readerKey: READER });
     expect(await reader.isActiveJournalist(`maria.${nr.name}`)).toBe(true);

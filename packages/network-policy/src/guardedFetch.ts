@@ -7,7 +7,7 @@ function urlOf(input: RequestInfo | URL): string {
   return input.url;
 }
 
-/** Envolve um `fetch`: recusa, antes de qualquer chamada, hosts fora da política. */
+/** Wraps a `fetch`: refuses hosts outside the policy before any call. */
 export function guardedFetch(policy: NetworkPolicy, base: typeof fetch = globalThis.fetch): typeof fetch {
   return async (input, init) => {
     const url = urlOf(input);
@@ -16,7 +16,7 @@ export function guardedFetch(policy: NetworkPolicy, base: typeof fetch = globalT
       try {
         host = new URL(url).hostname;
       } catch {
-        /* url inválida: devolve o texto original no erro */
+        /* invalid url: returns the original text in the error */
       }
       throw new HostNotAllowedError(host, url);
     }

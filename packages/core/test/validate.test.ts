@@ -3,34 +3,34 @@ import { validateSubmission, type NewsroomPolicy } from "../src/index.ts";
 
 const policy: NewsroomPolicy = { categories: ["corrupcao", "saude"], maxBytes: 1000, attachments: false, epoch: "monthly" };
 
-describe("RF-21 validar envio contra a política", () => {
-  it("aceita_envio_dentro_da_politica", () => {
+describe("RF-21 validate submission against the policy", () => {
+  it("accepts_submission_within_the_policy", () => {
     expect(validateSubmission(policy, { category: "corrupcao", sizeBytes: 500, hasAttachment: false })).toEqual({ ok: true });
   });
 
-  it("recusa_categoria_fora_da_politica", () => {
+  it("rejects_category_outside_the_policy", () => {
     expect(validateSubmission(policy, { category: "outra", sizeBytes: 10, hasAttachment: false })).toMatchObject({ ok: false, code: "category_not_allowed" });
   });
 
-  it("limite_de_tamanho_e_inclusivo", () => {
+  it("size_limit_is_inclusive", () => {
     expect(validateSubmission(policy, { category: "saude", sizeBytes: 1000, hasAttachment: false })).toEqual({ ok: true });
     expect(validateSubmission(policy, { category: "saude", sizeBytes: 1001, hasAttachment: false })).toMatchObject({ ok: false, code: "too_large" });
   });
 
-  it("recusa_anexo_quando_a_politica_nao_aceita", () => {
+  it("rejects_attachment_when_the_policy_does_not_allow_it", () => {
     expect(validateSubmission(policy, { category: "saude", sizeBytes: 10, hasAttachment: true })).toMatchObject({ ok: false, code: "attachments_not_allowed" });
     expect(validateSubmission({ ...policy, attachments: true }, { category: "saude", sizeBytes: 10, hasAttachment: true })).toEqual({ ok: true });
   });
 
-  it("recusa_tamanho_invalido_ou_vazio", () => {
+  it("rejects_invalid_or_empty_size", () => {
     for (const sizeBytes of [0, -5, Number.NaN, 1.5]) {
       expect(validateSubmission(policy, { category: "saude", sizeBytes, hasAttachment: false }), String(sizeBytes)).toMatchObject({ ok: false, code: "invalid_size" });
     }
   });
 
-  it("a_recusa_traz_mensagem_legivel", () => {
+  it("the_refusal_carries_a_readable_message", () => {
     const r = validateSubmission(policy, { category: "outra", sizeBytes: 10, hasAttachment: false });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.message).toMatch(/categoria/i);
+    if (!r.ok) expect(r.message).toMatch(/category/i);
   });
 });

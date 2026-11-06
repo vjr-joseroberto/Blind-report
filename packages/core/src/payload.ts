@@ -10,7 +10,7 @@ export class PayloadError extends Error {
   }
 }
 
-/** Conteúdo que a fonte cifra: texto e, se a política aceitar, um anexo. */
+/** Content that the source encrypts: text and, if the policy allows it, an attachment. */
 export function encodePayload(p: Payload): Uint8Array {
   const body: Record<string, unknown> = { v: 1, text: p.text };
   if (p.attachment) body.attachment = { name: p.attachment.name, data: toBase64Url(p.attachment.data) };
@@ -22,10 +22,10 @@ export function decodePayload(bytes: Uint8Array): Payload {
   try {
     raw = JSON.parse(new TextDecoder().decode(bytes));
   } catch {
-    throw new PayloadError("O conteúdo não é uma denúncia no formato esperado.");
+    throw new PayloadError("The content is not a tip in the expected format.");
   }
-  if (raw?.v !== 1 || typeof raw.text !== "string") throw new PayloadError("O conteúdo não é uma denúncia no formato esperado.");
+  if (raw?.v !== 1 || typeof raw.text !== "string") throw new PayloadError("The content is not a tip in the expected format.");
   if (raw.attachment === undefined) return { text: raw.text };
-  if (typeof raw.attachment?.name !== "string" || typeof raw.attachment?.data !== "string") throw new PayloadError("Anexo malformado.");
+  if (typeof raw.attachment?.name !== "string" || typeof raw.attachment?.data !== "string") throw new PayloadError("Malformed attachment.");
   return { text: raw.text, attachment: { name: raw.attachment.name, data: fromBase64Url(raw.attachment.data) } };
 }
