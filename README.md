@@ -1,6 +1,7 @@
 # Blind Report
 
 [![ETHGlobal Mumbai 2026](https://img.shields.io/badge/ETHGlobal-Mumbai%20Showcase-blueviolet?style=for-the-badge&logo=ethereum)](https://ethglobal.com/events/mumbai)
+[![ETHGlobal Award: Best Use of IDKit](https://img.shields.io/badge/ETHGlobal%20Award-World%20%C2%B7%20Best%20Use%20of%20IDKit-6f42c1?style=for-the-badge)](https://ethglobal.com/showcase/blind-report-8ubn9)
 [![Tests Passing](https://img.shields.io/badge/Tests-634%20Passing-success?style=for-the-badge&logo=vitest)](tests/)
 [![Network](https://img.shields.io/badge/Network-Ethereum%20Sepolia-3c3c3d?style=for-the-badge&logo=ethereum)](https://sepolia.etherscan.io/)
 [![Storage](https://img.shields.io/badge/Storage-Arkiv%20Rabdi-ff6b4a?style=for-the-badge)](https://rabdi.explorer.arkiv.network)
@@ -27,6 +28,15 @@ Investigative whistleblowers risk imprisonment, state prosecution, and physical 
 - **Decentralized Ephemeral Storage via Arkiv Network:** Envelopes are stored with programmed block-based expiration (e.g. 90-day retention) and custody transfer to the newsroom. Third-party relayers sponsor gas fees so sources never expose an on-chain funding trail.
 - **Two-Way Anonymous Communication:** An encrypted mailbox enables journalists to reply to the source. The source fetches replies from Arkiv using a local ephemeral secret receipt—no accounts, no IPs, no sessions.
 - **Verifiable Authorship Proof:** Whistleblowers retain a cryptographic salt commitment, allowing them to mathematically prove original authorship in court or to other media outlets months later without prior deanonymization.
+
+---
+
+## 🏅 Award — ETHGlobal Mumbai 2026
+
+> **World — “Best Use of IDKit”**, awarded to **Blind Report** at [ETHGlobal Mumbai](https://ethglobal.com/events/mumbai).  
+> [Official showcase](https://ethglobal.com/showcase/blind-report-8ubn9) · [Live demo](https://blind-report.vercel.app) · [Award record](ETHGLOBAL.md)
+
+World ID 4.0 personhood proofs are bound to `submit:<newsroom>:<epoch>`, so the relayer enforces **one submission per human per newsroom per month** through a nullifier hash — spam-resistant without ever identifying the source.
 
 ---
 
@@ -261,6 +271,7 @@ npm run test:sepolia:flow
 
 For judges and technical reviewers, comprehensive documentation is provided in the repository:
 
+- 🏅 **[ETHGLOBAL.md](ETHGLOBAL.md):** Official submission record, showcase link, and the World **Best Use of IDKit** award.
 - 📑 **[PARTNER_PRIZES.md](PARTNER_PRIZES.md):** In-depth technical architecture for ENS, Arkiv, and World ID, along with direct partner feedback.
 - 🌐 **[DEPLOYMENTS.md](DEPLOYMENTS.md):** On-chain contract addresses, network configurations, and Sepolia verification instructions.
 - 🛡️ **[THREAT_MODEL.md](THREAT_MODEL.md):** Formal security model, 5-tier adversary analysis, and cryptographic proofs.
